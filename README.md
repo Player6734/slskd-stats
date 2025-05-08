@@ -43,7 +43,7 @@ There are also extensions that i did not test either.
 #### Download the python script
 The script can be downloaded either from the release or the repo directly
 #### Run the Python script with the html file as $1
-when running the python script you must give it the html file it needs. for example if I am in the same directopry as both the html file and the script i will type 
+when running the python script you must give it the html file it needs. for example if I am in the same directory as both the html file and the script I will type:
 ```
 python slskd-upload-stats.py  slskd.html
 ```
