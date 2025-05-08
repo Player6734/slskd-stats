@@ -1,6 +1,6 @@
 # Usage
 #### Download page as html
-First we need to download the upload page of Slskd as html. In order to do this we will first cascade all users that we want to be counted in the html, uploads that are hidden will not we in the html and therefor not counted in the statistsits
+First we need to download the upload page of Slskd as html. In order to do this we will first cascade all users that we want to be counted in the html, uploads that are hidden will not we in the html and therefor not counted in the statistsics  
 ![cascaded](https://github.com/user-attachments/assets/e17e8b9b-ad32-4fde-9972-61dae944fcb8)
 
 ![image](https://github.com/user-attachments/assets/6944add4-4f95-483b-875e-c70e99d0f082)  
