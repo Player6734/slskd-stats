@@ -1,3 +1,36 @@
+# What is does
+Give you the upload stats in a digestable way. Output example:  
+```
+===== SLSKD TRANSFER STATISTICS =====
+
+Overall Statistics:
+Successfully transferred: 18.90 GB (705 files)
+Failed transfers: 624.5 MB (20 files)
+Total size of all files: 19.53 GB (725 files)
+Success rate: 96.8%
+
+File Type Statistics:
+FLAC files: 723
+MP3 files: 3
+Other files: -1
+
+Top Users by Total Transfer Volume:
+1. karmapoliceofficer01: 1.57 GB total
+2. retardedpirate: 1.12 GB total
+3. stalkiii567: 941.5 MB total
+4. satanandbabylon: 934.6 MB total
+5. Mr Webster: 911.8 MB total
+
+Top Users by Successful Transfers:
+1. karmapoliceofficer01: 1.57 GB successful (19 files)
+2. retardedpirate: 1.12 GB successful (37 files)
+3. stalkiii567: 941.5 MB successful (40 files)
+4. satanandbabylon: 934.6 MB successful (22 files)
+5. Mr Webster: 911.8 MB successful (40 files)
+
+=====================================
+```
+
 # Usage
 #### Download page as html
 First we need to download the upload page of Slskd as html. In order to do this we will first cascade all users that we want to be counted in the html, uploads that are hidden will not we in the html and therefor not counted in the statistsics  
