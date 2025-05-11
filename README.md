@@ -111,4 +111,5 @@ Average Download Duration: 26.21 seconds
 ...
 ```
 ### GUI
-![image](https://github.com/user-attachments/assets/ce3c6518-0362-4086-b473-fd8638a59029)
+![image](https://github.com/user-attachments/assets/c1851fb1-7439-4853-ab89-e47a30346af6)
+
