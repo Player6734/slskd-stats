@@ -1,54 +1,114 @@
-# What is does
-Give you the upload stats in a digestable way. Output example:  
+# slskd Transfer Statistics
+
+A tool to analyze upload and download statistics from your slskd transfers database with both command-line and GUI interfaces.
+
+## Features
+
+- Analyzes uploads and downloads stored in the transfers.db database(s)
+- Automatically finds and combines data from multiple database files
+- Calculates total transfers, data transferred, and unique users
+- Shows average transfer speed and duration
+- Lists top users by data transferred
+- Shows statistics by file type
+- Filter statistics by date range
+- Graphical user interface for easier analysis
+- Maintains full command-line functionality
+
+## Requirements
+
+- Python 3.6+
+- SQLite3
+- PyQt5 (for GUI version)
+
+## Installation
+
+1. Clone or download this repository
+2. Ensure Python 3 is installed
+3. Place your `transfers.db` file in the same directory as the script, or specify database paths using the `--db` option
+
+## Usage
+
+### Command Line Interface
+
+```bash
+# Basic usage (uses transfers.db in current directory)
+# Shows both upload and download stats by default
+./slskd_stats.py
+
+# Show only upload stats
+./slskd_stats.py --uploads
+
+# Show only download stats
+./slskd_stats.py --downloads
+
+# Explicitly show both upload and download stats (same as default)
+./slskd_stats.py --all
+
+# Specify single database file
+./slskd_stats.py --db /path/to/transfers.db
+
+# Specify multiple database files
+./slskd_stats.py --db /path/to/transfers.db --db /path/to/another-transfers.db
+
+# Only show transfers from the last 30 days
+./slskd_stats.py --days 30
+
+# Show top 15 entries in each category
+./slskd_stats.py --top 15
+
+# Combine options
+./slskd_stats.py --all --days 7 --top 20 --db /path/to/transfers.db
 ```
-===== SLSKD TRANSFER STATISTICS =====
 
-Overall Statistics:
-Successfully transferred: 18.90 GB (705 files)
-Failed transfers: 624.5 MB (20 files)
-Total size of all files: 19.53 GB (725 files)
-Success rate: 96.8%
+### GUI Interface
 
-File Type Statistics:
-FLAC files: 723
-MP3 files: 3
-Other files: -1
+```bash
+# Launch the GUI version
+./slskd_stats_gui.py
 
-Top Users by Total Transfer Volume:
-1. karmapoliceofficer01: 1.57 GB total
-2. retardedpirate: 1.12 GB total
-3. stalkiii567: 941.5 MB total
-4. satanandbabylon: 934.6 MB total
-5. Mr Webster: 911.8 MB total
-
-Top Users by Successful Transfers:
-1. karmapoliceofficer01: 1.57 GB successful (19 files)
-2. retardedpirate: 1.12 GB successful (37 files)
-3. stalkiii567: 941.5 MB successful (40 files)
-4. satanandbabylon: 934.6 MB successful (22 files)
-5. Mr Webster: 911.8 MB successful (40 files)
-
-=====================================
+# Launch GUI even when providing command line arguments
+./slskd_stats_gui.py --gui
 ```
 
-# Usage
-#### Download page as html
-First we need to download the upload page of Slskd as html. In order to do this we will first cascade all users that we want to be counted in the html, uploads that are hidden will not we in the html and therefor not counted in the statistsics  
-![cascaded](https://github.com/user-attachments/assets/e17e8b9b-ad32-4fde-9972-61dae944fcb8)
+With the GUI, you can:
+- Select one or more database files using the file browser
+- Choose to show upload stats, download stats, or both
+- Filter by time period (last X days)
+- Set the number of top entries to display
+- View statistics in a user-friendly tabbed interface
 
-![image](https://github.com/user-attachments/assets/6944add4-4f95-483b-875e-c70e99d0f082)  
-This is the context menu on firefox. I believe the option is called "Save As..." on chrome based browsers I did not test the script on a chromium downloaded html.
-There are also extensions that i did not test either.
+## Example Output
 
-#### Download the python script
-The script can be downloaded either from the release or the repo directly
-#### Run the Python script with the html file as $1
-when running the python script you must give it the html file it needs. for example if I am in the same directory as both the html file and the script I will type:
 ```
-python slskd-upload-stats.py  slskd.html
-```
-but it can also be used with absolute paths. Ex:
-```
-python /home/USER/Scripts/flac/slskd-upload-stats.py  /home/USER/Downloads/slskd.html
-```
+=== UPLOAD STATISTICS ===
 
+Total Uploads: 8583
+Total Data Uploaded: 241.97 GB
+Unique Users: 650
+Average Upload Speed: 8.50 MB/s
+Average Upload Duration: 10.02 seconds
+
+--- Top Users by Data Uploaded ---
+1. username1: 279 files, 18.01 GB
+2. username2: 494 files, 12.29 GB
+3. username3: 378 files, 11.05 GB
+...
+
+--- Top File Types ---
+1. .flac: 8456 files, 241.00 GB
+2. .mp3: 105 files, 830.71 MB
+3. .m4a: 22 files, 165.58 MB
+
+=== DOWNLOAD STATISTICS ===
+
+Total Downloads: 357
+Total Data Downloaded: 10.94 GB
+Unique Users: 36
+Average Download Speed: 2.03 MB/s
+Average Download Duration: 26.21 seconds
+
+--- Top Users by Data Downloaded ---
+1. username1: 6 files, 1.45 GB
+2. username2: 58 files, 1.33 GB
+...
+```
