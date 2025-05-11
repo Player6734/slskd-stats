@@ -78,7 +78,7 @@ With the GUI, you can:
 - View statistics in a user-friendly tabbed interface
 
 ## Example Output
-
+### CLI
 ```
 === UPLOAD STATISTICS ===
 
@@ -112,3 +112,5 @@ Average Download Duration: 26.21 seconds
 2. username2: 58 files, 1.33 GB
 ...
 ```
+### GUI
+![image](https://github.com/user-attachments/assets/ce3c6518-0362-4086-b473-fd8638a59029)
