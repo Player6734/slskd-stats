@@ -4,15 +4,13 @@ A tool to analyze upload and download statistics from your slskd transfers datab
 
 ## Features
 
-- Analyzes uploads and downloads stored in the transfers.db database(s)
-- Automatically finds and combines data from multiple database files
-- Calculates total transfers, data transferred, and unique users
+- Can work with multiple .db files
+- Calculates: total transfers, data transferred, and unique users
 - Shows average transfer speed and duration
 - Lists top users by data transferred
 - Shows statistics by file type
 - Filter statistics by date range
-- Graphical user interface for easier analysis
-- Maintains full command-line functionality
+- Optional GUI
 
 ## Requirements
 
