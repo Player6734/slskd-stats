@@ -361,80 +361,88 @@ class MainWindow(QMainWindow):
         self.mainLayout.setContentsMargins(10, 10, 10, 10)
         self.mainLayout.setSpacing(8)
         
-        # Create top section for database selection
-        self.createDatabaseSection()
-        
-        # Create filter section
-        self.createFilterSection()
+        # Create compact controls section
+        self.createControlsSection()
         
         # Create tabs for results
         self.createTabs()
-        
-        # Create analyze button
-        self.analyzeButton = QPushButton("Analyze Transfers")
-        self.analyzeButton.clicked.connect(self.analyzeTransfers)
-        self.mainLayout.addWidget(self.analyzeButton)
         
         # Initial database check
         if os.path.exists("transfers.db"):
             self.db_paths.append("transfers.db")
             self.dbPathsLabel.setText("Database(s): transfers.db")
         
-    def createDatabaseSection(self):
-        # Database selection section
-        dbSection = QGroupBox("Database Files")
-        dbLayout = QVBoxLayout()
-        dbLayout.setContentsMargins(10, 10, 10, 10)
-        dbLayout.setSpacing(5)
+    def createControlsSection(self):
+        # Compact controls section
+        controlsGroup = QGroupBox("Controls")
+        controlsLayout = QHBoxLayout()
+        controlsLayout.setContentsMargins(10, 10, 10, 10)
+        controlsLayout.setSpacing(15)
         
-        # Create layout for database selection buttons
-        buttonLayout = QHBoxLayout()
+        # Database controls
+        dbControlsLayout = QVBoxLayout()
+        dbControlsLayout.setSpacing(3)
         
-        # Add database button
-        addDbButton = QPushButton("Add Database File")
+        dbButtonsLayout = QHBoxLayout()
+        addDbButton = QPushButton("Add DB")
         addDbButton.clicked.connect(self.addDatabaseFile)
-        buttonLayout.addWidget(addDbButton)
-        
-        # Clear databases button
-        clearDbButton = QPushButton("Clear Database Files")
+        clearDbButton = QPushButton("Clear")
         clearDbButton.clicked.connect(self.clearDatabaseFiles)
-        buttonLayout.addWidget(clearDbButton)
+        dbButtonsLayout.addWidget(addDbButton)
+        dbButtonsLayout.addWidget(clearDbButton)
         
-        dbLayout.addLayout(buttonLayout)
-        
-        # Label to show selected databases
         self.dbPathsLabel = QLabel("No database files selected")
-        dbLayout.addWidget(self.dbPathsLabel)
+        self.dbPathsLabel.setMaximumWidth(200)
+        self.dbPathsLabel.setWordWrap(True)
+        self.dbPathsLabel.setStyleSheet("font-size: 9pt; color: #666;")
         
-        dbSection.setLayout(dbLayout)
-        self.mainLayout.addWidget(dbSection)
+        dbControlsLayout.addLayout(dbButtonsLayout)
+        dbControlsLayout.addWidget(self.dbPathsLabel)
         
-    def createFilterSection(self):
-        # Filter options section
-        filterSection = QGroupBox("Filters")
-        filterLayout = QFormLayout()
-        filterLayout.setContentsMargins(10, 10, 10, 10)
-        filterLayout.setVerticalSpacing(5)
-
-        # Time period filter
+        # Filter controls  
+        filterControlsLayout = QVBoxLayout()
+        filterControlsLayout.setSpacing(3)
+        
+        # Time period
+        periodLayout = QHBoxLayout()
+        periodLayout.addWidget(QLabel("Period:"))
         self.periodComboBox = QComboBox()
         self.periodComboBox.addItems(["All time", "Last month", "Last year"])
         self.periodComboBox.setCurrentText("All time")
-        filterLayout.addRow("Time period:", self.periodComboBox)
-
-        # Top N filter
+        periodLayout.addWidget(self.periodComboBox)
+        
+        # Top N
+        topLayout = QHBoxLayout()
+        topLayout.addWidget(QLabel("Top N:"))
         self.topSpinBox = QSpinBox()
         self.topSpinBox.setMinimum(1)
         self.topSpinBox.setMaximum(100)
         self.topSpinBox.setValue(10)
-        filterLayout.addRow("Show top N entries:", self.topSpinBox)
-
+        self.topSpinBox.setMaximumWidth(60)
+        topLayout.addWidget(self.topSpinBox)
+        
+        filterControlsLayout.addLayout(periodLayout)
+        filterControlsLayout.addLayout(topLayout)
+        
+        # Analyze button
+        self.analyzeButton = QPushButton("Analyze Transfers")
+        self.analyzeButton.clicked.connect(self.analyzeTransfers)
+        self.analyzeButton.setMinimumHeight(40)
+        
+        # Add all sections to main layout
+        controlsLayout.addLayout(dbControlsLayout)
+        controlsLayout.addWidget(QLabel("|"))  # Separator
+        controlsLayout.addLayout(filterControlsLayout)
+        controlsLayout.addWidget(QLabel("|"))  # Separator
+        controlsLayout.addWidget(self.analyzeButton)
+        controlsLayout.addStretch()
+        
         # Hidden variables to replace checkboxes
         self.uploadsCheckBox = True
         self.downloadsCheckBox = True
-
-        filterSection.setLayout(filterLayout)
-        self.mainLayout.addWidget(filterSection)
+        
+        controlsGroup.setLayout(controlsLayout)
+        self.mainLayout.addWidget(controlsGroup)
         
     def createTabs(self):
         # Create tab widget
