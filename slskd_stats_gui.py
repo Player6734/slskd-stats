@@ -655,18 +655,22 @@ class MainWindow(QMainWindow):
         # Plot lines and collect them for cursor tooltips
         lines = []
         if self.uploadsCheckbox.isChecked():
-            line = ax1.plot(dates, self.timeSeriesData['upload_counts'], label='Uploads', color='blue', linewidth=2)[0]
-            lines.append((line, 'upload_counts', 'Uploads'))
+            plot_result = ax1.plot(dates, self.timeSeriesData['upload_counts'], label='Uploads', color='blue', linewidth=2)
+            if plot_result:
+                lines.append((plot_result[0], 'upload_counts', 'Uploads'))
         if self.downloadsCheckbox.isChecked():
-            line = ax1.plot(dates, self.timeSeriesData['download_counts'], label='Downloads', color='green', linewidth=2)[0]
-            lines.append((line, 'download_counts', 'Downloads'))
+            plot_result = ax1.plot(dates, self.timeSeriesData['download_counts'], label='Downloads', color='green', linewidth=2)
+            if plot_result:
+                lines.append((plot_result[0], 'download_counts', 'Downloads'))
         if self.errorsCheckbox.isChecked():
             total_errors = [u + d for u, d in zip(self.timeSeriesData['upload_errors'], self.timeSeriesData['download_errors'])]
-            line = ax1.plot(dates, total_errors, label='Total Errors', color='red', linewidth=2)[0]
-            lines.append((line, 'total_errors', 'Total Errors'))
+            plot_result = ax1.plot(dates, total_errors, label='Total Errors', color='red', linewidth=2)
+            if plot_result:
+                lines.append((plot_result[0], 'total_errors', 'Total Errors'))
         if self.newUsersCheckbox.isChecked():
-            line = ax1.plot(dates, self.timeSeriesData['new_users'], label='New Users', color='purple', linewidth=2)[0]
-            lines.append((line, 'new_users', 'New Users'))
+            plot_result = ax1.plot(dates, self.timeSeriesData['new_users'], label='New Users', color='purple', linewidth=2)
+            if plot_result:
+                lines.append((plot_result[0], 'new_users', 'New Users'))
         
         # Add interactive cursors to amounts graph
         if lines:
@@ -708,25 +712,39 @@ class MainWindow(QMainWindow):
             upload_speeds = [s / (1024*1024) for s in self.timeSeriesData['upload_speeds']]  # Convert to MB/s
             download_speeds = [s / (1024*1024) for s in self.timeSeriesData['download_speeds']]  # Convert to MB/s
             
-            line1 = ax2.plot(dates, upload_speeds, label='Upload Speed', color='blue', linewidth=2)[0]
-            line2 = ax2.plot(dates, download_speeds, label='Download Speed', color='green', linewidth=2)[0]
-            ratio_lines.append((line1, 'upload_speeds', 'Upload Speed', 'MB/s'))
-            ratio_lines.append((line2, 'download_speeds', 'Download Speed', 'MB/s'))
+            speed_plot1 = ax2.plot(dates, upload_speeds, label='Upload Speed', color='blue', linewidth=2)
+            speed_plot2 = ax2.plot(dates, download_speeds, label='Download Speed', color='green', linewidth=2)
+            if speed_plot1:
+                ratio_lines.append((speed_plot1[0], 'upload_speeds', 'Upload Speed', 'MB/s'))
+            if speed_plot2:
+                ratio_lines.append((speed_plot2[0], 'download_speeds', 'Download Speed', 'MB/s'))
             ax2.set_ylabel('Speed (MB/s)', color='black')
             ax2.tick_params(axis='y', labelcolor='black')
             
             # Error rates on right axis
-            line3 = ax3.plot(dates, self.timeSeriesData['upload_error_rates'], label='Upload Error Rate', color='red', linewidth=2, linestyle='--')[0]
-            line4 = ax3.plot(dates, self.timeSeriesData['download_error_rates'], label='Download Error Rate', color='orange', linewidth=2, linestyle='--')[0]
-            ratio_lines.append((line3, 'upload_error_rates', 'Upload Error Rate', '%'))
-            ratio_lines.append((line4, 'download_error_rates', 'Download Error Rate', '%'))
+            error_plot1 = ax3.plot(dates, self.timeSeriesData['upload_error_rates'], label='Upload Error Rate', color='red', linewidth=2, linestyle='--')
+            error_plot2 = ax3.plot(dates, self.timeSeriesData['download_error_rates'], label='Download Error Rate', color='orange', linewidth=2, linestyle='--')
+            if error_plot1:
+                ratio_lines.append((error_plot1[0], 'upload_error_rates', 'Upload Error Rate', '%'))
+            if error_plot2:
+                ratio_lines.append((error_plot2[0], 'download_error_rates', 'Download Error Rate', '%'))
             ax3.set_ylabel('Error Rate (%)', color='black')
             ax3.tick_params(axis='y', labelcolor='black')
             
             # Combine legends
-            lines = [line1, line2, line3, line4]
-            labels = [l.get_label() for l in lines]
-            ax2.legend(lines, labels, loc='upper left')
+            legend_lines = []
+            if speed_plot1:
+                legend_lines.append(speed_plot1[0])
+            if speed_plot2:
+                legend_lines.append(speed_plot2[0])
+            if error_plot1:
+                legend_lines.append(error_plot1[0])
+            if error_plot2:
+                legend_lines.append(error_plot2[0])
+            
+            if legend_lines:
+                labels = [l.get_label() for l in legend_lines]
+                ax2.legend(legend_lines, labels, loc='upper left')
             
         elif show_speeds:
             # Only speeds - single y-axis
@@ -735,10 +753,12 @@ class MainWindow(QMainWindow):
             upload_speeds = [s / (1024*1024) for s in self.timeSeriesData['upload_speeds']]  # Convert to MB/s
             download_speeds = [s / (1024*1024) for s in self.timeSeriesData['download_speeds']]  # Convert to MB/s
             
-            line1 = ax2.plot(dates, upload_speeds, label='Upload Speed', color='blue', linewidth=2)[0]
-            line2 = ax2.plot(dates, download_speeds, label='Download Speed', color='green', linewidth=2)[0]
-            ratio_lines.append((line1, 'upload_speeds', 'Upload Speed', 'MB/s'))
-            ratio_lines.append((line2, 'download_speeds', 'Download Speed', 'MB/s'))
+            plot_result1 = ax2.plot(dates, upload_speeds, label='Upload Speed', color='blue', linewidth=2)
+            plot_result2 = ax2.plot(dates, download_speeds, label='Download Speed', color='green', linewidth=2)
+            if plot_result1:
+                ratio_lines.append((plot_result1[0], 'upload_speeds', 'Upload Speed', 'MB/s'))
+            if plot_result2:
+                ratio_lines.append((plot_result2[0], 'download_speeds', 'Download Speed', 'MB/s'))
             ax2.set_ylabel('Speed (MB/s)')
             ax2.legend()
             
@@ -746,10 +766,12 @@ class MainWindow(QMainWindow):
             # Only error rates - single y-axis
             ax2 = self.ratiosFigure.add_subplot(111)
             
-            line1 = ax2.plot(dates, self.timeSeriesData['upload_error_rates'], label='Upload Error Rate', color='red', linewidth=2)[0]
-            line2 = ax2.plot(dates, self.timeSeriesData['download_error_rates'], label='Download Error Rate', color='orange', linewidth=2)[0]
-            ratio_lines.append((line1, 'upload_error_rates', 'Upload Error Rate', '%'))
-            ratio_lines.append((line2, 'download_error_rates', 'Download Error Rate', '%'))
+            plot_result1 = ax2.plot(dates, self.timeSeriesData['upload_error_rates'], label='Upload Error Rate', color='red', linewidth=2)
+            plot_result2 = ax2.plot(dates, self.timeSeriesData['download_error_rates'], label='Download Error Rate', color='orange', linewidth=2)
+            if plot_result1:
+                ratio_lines.append((plot_result1[0], 'upload_error_rates', 'Upload Error Rate', '%'))
+            if plot_result2:
+                ratio_lines.append((plot_result2[0], 'download_error_rates', 'Download Error Rate', '%'))
             ax2.set_ylabel('Error Rate (%)')
             ax2.legend()
         
