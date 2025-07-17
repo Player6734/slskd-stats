@@ -375,10 +375,7 @@ class MainWindow(QMainWindow):
         controlsGroup = QGroupBox("Controls")
         controlsLayout = QHBoxLayout()
         
-        # Database controls - left side
-        dbControlsLayout = QVBoxLayout()
-        
-        # Database buttons in horizontal layout
+        # Database buttons only (no label)
         dbButtonsLayout = QHBoxLayout()
         addDbButton = QPushButton("Add Database File")
         addDbButton.clicked.connect(self.addDatabaseFile)
@@ -386,14 +383,6 @@ class MainWindow(QMainWindow):
         clearDbButton.clicked.connect(self.clearDatabaseFiles)
         dbButtonsLayout.addWidget(addDbButton)
         dbButtonsLayout.addWidget(clearDbButton)
-        
-        # Database status label
-        self.dbPathsLabel = QLabel("No database files selected")
-        self.dbPathsLabel.setMaximumWidth(200)
-        self.dbPathsLabel.setWordWrap(True)
-        
-        dbControlsLayout.addLayout(dbButtonsLayout)
-        dbControlsLayout.addWidget(self.dbPathsLabel)
         
         # Analysis controls - right side
         analyzeControlsLayout = QHBoxLayout()
@@ -414,7 +403,7 @@ class MainWindow(QMainWindow):
         separator.setStyleSheet("color: gray; font-size: 16px; padding: 0 10px;")
         
         # Add all sections to main layout with proper alignment
-        controlsLayout.addLayout(dbControlsLayout)
+        controlsLayout.addLayout(dbButtonsLayout)
         controlsLayout.addWidget(separator)
         controlsLayout.addLayout(analyzeControlsLayout)
         controlsLayout.addStretch()
@@ -425,6 +414,12 @@ class MainWindow(QMainWindow):
         
         controlsGroup.setLayout(controlsLayout)
         self.mainLayout.addWidget(controlsGroup)
+        
+        # Database status label at bottom left
+        self.dbPathsLabel = QLabel("No database files selected")
+        self.dbPathsLabel.setMaximumWidth(400)
+        self.dbPathsLabel.setWordWrap(True)
+        self.mainLayout.addWidget(self.dbPathsLabel)
         
     def createTabs(self):
         # Create tab widget
