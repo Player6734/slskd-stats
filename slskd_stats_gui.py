@@ -781,9 +781,20 @@ class MainWindow(QMainWindow):
     def format_amounts_tooltip(self, sel, lines):
         """Format tooltip for amounts graph"""
         try:
-            # Get the index from the selection
-            index = int(sel.target.index)
+            # Get the index from the selection - mplcursors uses different ways to access index
+            if hasattr(sel.target, 'index'):
+                index = int(sel.target.index)
+            elif hasattr(sel, 'index'):
+                index = int(sel.index)
+            else:
+                # Try to get index from the target coordinates
+                target_x = sel.target[0]
+                # Find closest date
+                dates = [mdates.date2num(d) for d in self.timeSeriesData['dates']]
+                index = min(range(len(dates)), key=lambda i: abs(dates[i] - target_x))
+            
             if index >= len(self.timeSeriesData['dates']):
+                sel.annotation.set_text('Index out of range')
                 return
             
             date = self.timeSeriesData['dates'][index]
@@ -804,17 +815,32 @@ class MainWindow(QMainWindow):
                     # Format the tooltip
                     date_str = date.strftime('%Y-%m-%d')
                     sel.annotation.set_text(f'{label}\nDate: {date_str}\nValue: {value:,}')
-                    break
-        except (AttributeError, IndexError, ValueError):
-            # Fallback to basic tooltip if index access fails
-            sel.annotation.set_text(f'Data point')
+                    return
+            
+            # If we couldn't find the line, show basic info
+            sel.annotation.set_text(f'Date: {date.strftime("%Y-%m-%d")}')
+            
+        except (AttributeError, IndexError, ValueError, TypeError) as e:
+            # More detailed error info for debugging
+            sel.annotation.set_text(f'Error: {str(e)[:50]}')
     
     def format_ratios_tooltip(self, sel, lines):
         """Format tooltip for ratios graph"""
         try:
-            # Get the index from the selection
-            index = int(sel.target.index)
+            # Get the index from the selection - mplcursors uses different ways to access index
+            if hasattr(sel.target, 'index'):
+                index = int(sel.target.index)
+            elif hasattr(sel, 'index'):
+                index = int(sel.index)
+            else:
+                # Try to get index from the target coordinates
+                target_x = sel.target[0]
+                # Find closest date
+                dates = [mdates.date2num(d) for d in self.timeSeriesData['dates']]
+                index = min(range(len(dates)), key=lambda i: abs(dates[i] - target_x))
+            
             if index >= len(self.timeSeriesData['dates']):
+                sel.annotation.set_text('Index out of range')
                 return
             
             date = self.timeSeriesData['dates'][index]
@@ -835,10 +861,14 @@ class MainWindow(QMainWindow):
                     # Format the tooltip
                     date_str = date.strftime('%Y-%m-%d')
                     sel.annotation.set_text(f'{label}\nDate: {date_str}\nValue: {value_str}')
-                    break
-        except (AttributeError, IndexError, ValueError):
-            # Fallback to basic tooltip if index access fails
-            sel.annotation.set_text(f'Data point')
+                    return
+            
+            # If we couldn't find the line, show basic info
+            sel.annotation.set_text(f'Date: {date.strftime("%Y-%m-%d")}')
+            
+        except (AttributeError, IndexError, ValueError, TypeError) as e:
+            # More detailed error info for debugging
+            sel.annotation.set_text(f'Error: {str(e)[:50]}')
     
     def analyzeTransfers(self):
         if not self.db_paths:
