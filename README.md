@@ -61,6 +61,8 @@ This tool automatically detects and works with both:
 
 This tool is designed to work with the `transfers.db` SQLite database created by [slskd](https://github.com/slskd/slskd), a Soulseek client daemon. It helps you understand your sharing patterns and track transfer statistics.
 
+*This project was developed with assistance from AI.*
+
 ## License
 
 MIT
