@@ -358,8 +358,6 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.centralWidget)
         
         self.mainLayout = QVBoxLayout(self.centralWidget)
-        self.mainLayout.setContentsMargins(10, 10, 10, 10)
-        self.mainLayout.setSpacing(8)
         
         # Create compact controls section
         self.createControlsSection()
@@ -376,17 +374,14 @@ class MainWindow(QMainWindow):
         # Compact controls section
         controlsGroup = QGroupBox("Controls")
         controlsLayout = QHBoxLayout()
-        controlsLayout.setContentsMargins(10, 10, 10, 10)
-        controlsLayout.setSpacing(15)
         
         # Database controls
         dbControlsLayout = QVBoxLayout()
-        dbControlsLayout.setSpacing(3)
         
         dbButtonsLayout = QHBoxLayout()
-        addDbButton = QPushButton("Add DB")
+        addDbButton = QPushButton("Add Database File")
         addDbButton.clicked.connect(self.addDatabaseFile)
-        clearDbButton = QPushButton("Clear")
+        clearDbButton = QPushButton("Clear Database Files")
         clearDbButton.clicked.connect(self.clearDatabaseFiles)
         dbButtonsLayout.addWidget(addDbButton)
         dbButtonsLayout.addWidget(clearDbButton)
@@ -394,48 +389,31 @@ class MainWindow(QMainWindow):
         self.dbPathsLabel = QLabel("No database files selected")
         self.dbPathsLabel.setMaximumWidth(200)
         self.dbPathsLabel.setWordWrap(True)
-        self.dbPathsLabel.setStyleSheet("font-size: 9pt; color: #666;")
         
         dbControlsLayout.addLayout(dbButtonsLayout)
         dbControlsLayout.addWidget(self.dbPathsLabel)
         
-        # Filter controls  
-        filterControlsLayout = QVBoxLayout()
-        filterControlsLayout.setSpacing(3)
+        # Analyze controls (period + button)
+        analyzeControlsLayout = QVBoxLayout()
         
-        # Time period
-        periodLayout = QHBoxLayout()
-        periodLayout.addWidget(QLabel("Period:"))
+        # Time period and analyze button in same row
+        analyzeRowLayout = QHBoxLayout()
+        analyzeRowLayout.addWidget(QLabel("Time period:"))
         self.periodComboBox = QComboBox()
         self.periodComboBox.addItems(["All time", "Last month", "Last year"])
         self.periodComboBox.setCurrentText("All time")
-        periodLayout.addWidget(self.periodComboBox)
+        analyzeRowLayout.addWidget(self.periodComboBox)
         
-        # Top N
-        topLayout = QHBoxLayout()
-        topLayout.addWidget(QLabel("Top N:"))
-        self.topSpinBox = QSpinBox()
-        self.topSpinBox.setMinimum(1)
-        self.topSpinBox.setMaximum(100)
-        self.topSpinBox.setValue(10)
-        self.topSpinBox.setMaximumWidth(60)
-        topLayout.addWidget(self.topSpinBox)
-        
-        filterControlsLayout.addLayout(periodLayout)
-        filterControlsLayout.addLayout(topLayout)
-        
-        # Analyze button
         self.analyzeButton = QPushButton("Analyze Transfers")
         self.analyzeButton.clicked.connect(self.analyzeTransfers)
-        self.analyzeButton.setMinimumHeight(40)
+        analyzeRowLayout.addWidget(self.analyzeButton)
+        
+        analyzeControlsLayout.addLayout(analyzeRowLayout)
         
         # Add all sections to main layout
         controlsLayout.addLayout(dbControlsLayout)
-        controlsLayout.addWidget(QLabel("|"))  # Separator
-        controlsLayout.addLayout(filterControlsLayout)
-        controlsLayout.addWidget(QLabel("|"))  # Separator
-        controlsLayout.addWidget(self.analyzeButton)
         controlsLayout.addStretch()
+        controlsLayout.addLayout(analyzeControlsLayout)
         
         # Hidden variables to replace checkboxes
         self.uploadsCheckBox = True
@@ -461,8 +439,6 @@ class MainWindow(QMainWindow):
         # Create a widget for all statistics
         self.summaryWidget = QWidget()
         self.summaryLayout = QVBoxLayout(self.summaryWidget)
-        self.summaryLayout.setContentsMargins(5, 5, 5, 5)
-        self.summaryLayout.setSpacing(8)
 
         # Summary section - horizontal layout with two text boxes
         summarySection = QHBoxLayout()
@@ -470,11 +446,9 @@ class MainWindow(QMainWindow):
         # Upload summary
         uploadSummaryGroup = QGroupBox("Upload Summary")
         uploadSummaryLayout = QVBoxLayout()
-        uploadSummaryLayout.setContentsMargins(5, 5, 5, 5)
         self.uploadSummary = QTextEdit()
         self.uploadSummary.setReadOnly(True)
         self.uploadSummary.setMaximumHeight(90)
-        self.uploadSummary.setFont(QFont("Arial", 9))
         uploadSummaryLayout.addWidget(self.uploadSummary)
         uploadSummaryGroup.setLayout(uploadSummaryLayout)
         summarySection.addWidget(uploadSummaryGroup)
@@ -482,11 +456,9 @@ class MainWindow(QMainWindow):
         # Download summary
         downloadSummaryGroup = QGroupBox("Download Summary")
         downloadSummaryLayout = QVBoxLayout()
-        downloadSummaryLayout.setContentsMargins(5, 5, 5, 5)
         self.downloadSummary = QTextEdit()
         self.downloadSummary.setReadOnly(True)
         self.downloadSummary.setMaximumHeight(90)
-        self.downloadSummary.setFont(QFont("Arial", 9))
         downloadSummaryLayout.addWidget(self.downloadSummary)
         downloadSummaryGroup.setLayout(downloadSummaryLayout)
         summarySection.addWidget(downloadSummaryGroup)
@@ -499,7 +471,6 @@ class MainWindow(QMainWindow):
         # Upload users
         uploadUsersGroup = QGroupBox("Top Users by Upload Size")
         uploadUsersLayout = QVBoxLayout()
-        uploadUsersLayout.setContentsMargins(5, 5, 5, 5)
         self.uploadUsersTable = QTableWidget(0, 3)
         self.uploadUsersTable.setHorizontalHeaderLabels(["User", "Files", "Data"])
         self.uploadUsersTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -512,7 +483,6 @@ class MainWindow(QMainWindow):
         # Download users
         downloadUsersGroup = QGroupBox("Top Users by Download Size")
         downloadUsersLayout = QVBoxLayout()
-        downloadUsersLayout.setContentsMargins(5, 5, 5, 5)
         self.downloadUsersTable = QTableWidget(0, 3)
         self.downloadUsersTable.setHorizontalHeaderLabels(["User", "Files", "Data"])
         self.downloadUsersTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -530,7 +500,6 @@ class MainWindow(QMainWindow):
         # Upload file types
         uploadTypesGroup = QGroupBox("Top File Types (Uploads)")
         uploadTypesLayout = QVBoxLayout()
-        uploadTypesLayout.setContentsMargins(5, 5, 5, 5)
         self.uploadTypesTable = QTableWidget(0, 3)
         self.uploadTypesTable.setHorizontalHeaderLabels(["Extension", "Files", "Data"])
         self.uploadTypesTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -543,7 +512,6 @@ class MainWindow(QMainWindow):
         # Download file types
         downloadTypesGroup = QGroupBox("Top File Types (Downloads)")
         downloadTypesLayout = QVBoxLayout()
-        downloadTypesLayout.setContentsMargins(5, 5, 5, 5)
         self.downloadTypesTable = QTableWidget(0, 3)
         self.downloadTypesTable.setHorizontalHeaderLabels(["Extension", "Files", "Data"])
         self.downloadTypesTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -562,14 +530,10 @@ class MainWindow(QMainWindow):
         # Create visual stats tab
         self.visualWidget = QWidget()
         self.visualLayout = QVBoxLayout(self.visualWidget)
-        self.visualLayout.setContentsMargins(5, 5, 5, 5)
-        self.visualLayout.setSpacing(8)
         
         # Create amounts graph section
         amountsGroup = QGroupBox("Transfer Amounts Over Time")
         amountsLayout = QVBoxLayout()
-        amountsLayout.setContentsMargins(5, 5, 5, 5)
-        amountsLayout.setSpacing(5)
         
         # Checkboxes for amounts metrics
         amountsCheckboxLayout = QHBoxLayout()
@@ -607,8 +571,6 @@ class MainWindow(QMainWindow):
         # Create ratios graph section
         ratiosGroup = QGroupBox("Transfer Ratios Over Time")
         ratiosLayout = QVBoxLayout()
-        ratiosLayout.setContentsMargins(5, 5, 5, 5)
-        ratiosLayout.setSpacing(5)
         
         # Checkboxes for ratios metrics
         ratiosCheckboxLayout = QHBoxLayout()
@@ -949,7 +911,7 @@ class MainWindow(QMainWindow):
             days = 365
         else:
             days = None
-        top_n = self.topSpinBox.value()
+        top_n = 10  # Fixed value since we removed the spinbox
 
         # Always show both upload and download stats
         show_uploads = True
