@@ -3,10 +3,7 @@ import sys
 import os
 import datetime
 import sqlite3
-import argparse
-import glob
 from collections import defaultdict
-from pathlib import Path
 
 # For GUI
 from PyQt5.QtWidgets import (
@@ -191,48 +188,6 @@ def get_transfer_stats(db_paths, direction="Upload", days=None):
 
     return stats
 
-def display_stats(stats, direction, top_n=10):
-    """Display the statistics in a readable format for CLI"""
-    if not stats or stats["total_transfers"] == 0:
-        print(f"No {direction.lower()} data found for the specified period.")
-        return
-    
-    output = []
-    output.append(f"\n=== {direction.upper()} STATISTICS ===\n")
-    
-    output.append(f"Total {direction}s: {stats['total_transfers']}")
-    output.append(f"Total Data {direction}ed: {format_size(stats['total_bytes'])}")
-    output.append(f"Unique Users: {stats['unique_users']}")
-    output.append(f"Average {direction} Speed: {format_size(stats['avg_speed'])}/s")
-    output.append(f"Average {direction} Duration: {format_time(stats['avg_duration'])}")
-    
-    # Top users by data transferred
-    output.append(f"\n--- Top Users by Data {direction}ed ---")
-    sorted_users = sorted(
-        stats["user_stats"].items(), 
-        key=lambda x: x[1]["bytes"], 
-        reverse=True
-    )
-    
-    for i, (username, data) in enumerate(sorted_users[:top_n], 1):
-        output.append(f"{i}. {username}: {data['count']} files, {format_size(data['bytes'])}")
-    
-    # Top file types
-    output.append("\n--- Top File Types ---")
-    sorted_extensions = sorted(
-        stats["extension_stats"].items(), 
-        key=lambda x: x[1]["bytes"], 
-        reverse=True
-    )
-    
-    for i, (ext, data) in enumerate(sorted_extensions[:top_n], 1):
-        output.append(f"{i}. {ext}: {data['count']} files, {format_size(data['bytes'])}")
-    
-    # Print all lines
-    for line in output:
-        print(line)
-    
-    return output
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -526,75 +481,11 @@ class MainWindow(QMainWindow):
             self.downloadSummary.setText("No download data found for the specified period.")
 
 def main():
-    # Check if command line args were provided
-    if len(sys.argv) > 1:
-        # Command line mode
-        parser = argparse.ArgumentParser(description="Analyze transfer statistics from slskd transfers database")
-        parser.add_argument("--db", action="append", help="Path to transfers.db file(s). Can be specified multiple times.")
-        parser.add_argument("--days", type=int, help="Only analyze transfers from the last X days")
-        parser.add_argument("--top", type=int, default=10, help="Show top N entries in each category")
-        parser.add_argument("--uploads", action="store_true", help="Show only upload statistics")
-        parser.add_argument("--downloads", action="store_true", help="Show only download statistics")
-        parser.add_argument("--all", action="store_true", help="Show both upload and download statistics (default)")
-        parser.add_argument("--gui", action="store_true", help="Launch the GUI instead of command line mode")
-        args = parser.parse_args()
-        
-        # Check if GUI mode is requested
-        if args.gui:
-            # Launch GUI mode
-            app = QApplication(sys.argv)
-            window = MainWindow()
-            window.show()
-            sys.exit(app.exec_())
-        
-        # Determine which db files to use
-        db_paths = []
-        if args.db:
-            # User specified database files
-            for db_path in args.db:
-                if os.path.exists(db_path):
-                    db_paths.append(db_path)
-                else:
-                    print(f"Warning: Database file not found: {db_path}")
-        else:
-            # Default: Only look for transfers.db in the current directory
-            if os.path.exists("transfers.db"):
-                db_paths.append("transfers.db")
-            else:
-                print("Default transfers.db not found in current directory.")
-
-        if not db_paths:
-            print("Error: No database files found. Please specify with --db option.")
-            return
-        
-        print(f"Using database file(s): {', '.join(db_paths)}")
-        
-        # Default behavior is to show both uploads and downloads
-        # Only change from default if specific flags are set
-        if args.uploads and not args.downloads and not args.all:
-            show_uploads = True
-            show_downloads = False
-        elif args.downloads and not args.uploads and not args.all:
-            show_uploads = False
-            show_downloads = True
-        else:
-            # Default behavior or --all flag
-            show_uploads = True
-            show_downloads = True
-        
-        if show_uploads:
-            upload_stats = get_transfer_stats(db_paths, "Upload", args.days)
-            display_stats(upload_stats, "Upload", args.top)
-        
-        if show_downloads:
-            download_stats = get_transfer_stats(db_paths, "Download", args.days)
-            display_stats(download_stats, "Download", args.top)
-    else:
-        # No args provided, launch GUI
-        app = QApplication(sys.argv)
-        window = MainWindow()
-        window.show()
-        sys.exit(app.exec_())
+    # Launch GUI application
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    sys.exit(app.exec_())
 
 if __name__ == "__main__":
     main()
