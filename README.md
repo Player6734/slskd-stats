@@ -43,16 +43,13 @@ With the GUI, you can:
 - See summary statistics and detailed tables for users and file types
 - **NEW**: Visual time series graphs showing transfer trends over time
 
-## Example Output
+## Screenshots
 
-The GUI displays:
-- **Summary sections** showing total transfers, data transferred, unique users, average speeds, and error rates
-- **Top Users tables** showing users ranked by data transferred
-- **Top File Types tables** showing file extensions ranked by data transferred
-- **Visual Stats tab** with interactive time series graphs:
-  - Transfer amounts over time (uploads, downloads, errors, new users)
-  - Transfer ratios over time (speeds, error rates) with dynamic y-axes
-  - Interactive hover tooltips showing exact values and dates
+### Summary View
+![Summary View](Summary.png)
+
+### Visual Stats with Time Series Graphs
+![Visual Stats](Visual.png)
 
 ## Database Compatibility
 
