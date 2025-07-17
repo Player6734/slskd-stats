@@ -348,7 +348,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         
         self.setWindowTitle("slskd Transfer Statistics")
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(900, 700)
+        self.resize(1000, 750)
         
         self.db_paths = []
         
@@ -357,6 +358,8 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self.centralWidget)
         
         self.mainLayout = QVBoxLayout(self.centralWidget)
+        self.mainLayout.setContentsMargins(10, 10, 10, 10)
+        self.mainLayout.setSpacing(8)
         
         # Create top section for database selection
         self.createDatabaseSection()
@@ -381,6 +384,8 @@ class MainWindow(QMainWindow):
         # Database selection section
         dbSection = QGroupBox("Database Files")
         dbLayout = QVBoxLayout()
+        dbLayout.setContentsMargins(10, 10, 10, 10)
+        dbLayout.setSpacing(5)
         
         # Create layout for database selection buttons
         buttonLayout = QHBoxLayout()
@@ -408,6 +413,8 @@ class MainWindow(QMainWindow):
         # Filter options section
         filterSection = QGroupBox("Filters")
         filterLayout = QFormLayout()
+        filterLayout.setContentsMargins(10, 10, 10, 10)
+        filterLayout.setVerticalSpacing(5)
 
         # Time period filter
         self.periodComboBox = QComboBox()
@@ -446,6 +453,8 @@ class MainWindow(QMainWindow):
         # Create a widget for all statistics
         self.summaryWidget = QWidget()
         self.summaryLayout = QVBoxLayout(self.summaryWidget)
+        self.summaryLayout.setContentsMargins(5, 5, 5, 5)
+        self.summaryLayout.setSpacing(8)
 
         # Summary section - horizontal layout with two text boxes
         summarySection = QHBoxLayout()
@@ -453,9 +462,11 @@ class MainWindow(QMainWindow):
         # Upload summary
         uploadSummaryGroup = QGroupBox("Upload Summary")
         uploadSummaryLayout = QVBoxLayout()
+        uploadSummaryLayout.setContentsMargins(5, 5, 5, 5)
         self.uploadSummary = QTextEdit()
         self.uploadSummary.setReadOnly(True)
-        self.uploadSummary.setMaximumHeight(120)
+        self.uploadSummary.setMaximumHeight(90)
+        self.uploadSummary.setFont(QFont("Arial", 9))
         uploadSummaryLayout.addWidget(self.uploadSummary)
         uploadSummaryGroup.setLayout(uploadSummaryLayout)
         summarySection.addWidget(uploadSummaryGroup)
@@ -463,9 +474,11 @@ class MainWindow(QMainWindow):
         # Download summary
         downloadSummaryGroup = QGroupBox("Download Summary")
         downloadSummaryLayout = QVBoxLayout()
+        downloadSummaryLayout.setContentsMargins(5, 5, 5, 5)
         self.downloadSummary = QTextEdit()
         self.downloadSummary.setReadOnly(True)
-        self.downloadSummary.setMaximumHeight(120)
+        self.downloadSummary.setMaximumHeight(90)
+        self.downloadSummary.setFont(QFont("Arial", 9))
         downloadSummaryLayout.addWidget(self.downloadSummary)
         downloadSummaryGroup.setLayout(downloadSummaryLayout)
         summarySection.addWidget(downloadSummaryGroup)
@@ -478,9 +491,12 @@ class MainWindow(QMainWindow):
         # Upload users
         uploadUsersGroup = QGroupBox("Top Users by Upload Size")
         uploadUsersLayout = QVBoxLayout()
+        uploadUsersLayout.setContentsMargins(5, 5, 5, 5)
         self.uploadUsersTable = QTableWidget(0, 3)
         self.uploadUsersTable.setHorizontalHeaderLabels(["User", "Files", "Data"])
         self.uploadUsersTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.uploadUsersTable.setMaximumHeight(150)
+        self.uploadUsersTable.setAlternatingRowColors(True)
         uploadUsersLayout.addWidget(self.uploadUsersTable)
         uploadUsersGroup.setLayout(uploadUsersLayout)
         usersSection.addWidget(uploadUsersGroup)
@@ -488,9 +504,12 @@ class MainWindow(QMainWindow):
         # Download users
         downloadUsersGroup = QGroupBox("Top Users by Download Size")
         downloadUsersLayout = QVBoxLayout()
+        downloadUsersLayout.setContentsMargins(5, 5, 5, 5)
         self.downloadUsersTable = QTableWidget(0, 3)
         self.downloadUsersTable.setHorizontalHeaderLabels(["User", "Files", "Data"])
         self.downloadUsersTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.downloadUsersTable.setMaximumHeight(150)
+        self.downloadUsersTable.setAlternatingRowColors(True)
         downloadUsersLayout.addWidget(self.downloadUsersTable)
         downloadUsersGroup.setLayout(downloadUsersLayout)
         usersSection.addWidget(downloadUsersGroup)
@@ -503,9 +522,12 @@ class MainWindow(QMainWindow):
         # Upload file types
         uploadTypesGroup = QGroupBox("Top File Types (Uploads)")
         uploadTypesLayout = QVBoxLayout()
+        uploadTypesLayout.setContentsMargins(5, 5, 5, 5)
         self.uploadTypesTable = QTableWidget(0, 3)
         self.uploadTypesTable.setHorizontalHeaderLabels(["Extension", "Files", "Data"])
         self.uploadTypesTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.uploadTypesTable.setMaximumHeight(150)
+        self.uploadTypesTable.setAlternatingRowColors(True)
         uploadTypesLayout.addWidget(self.uploadTypesTable)
         uploadTypesGroup.setLayout(uploadTypesLayout)
         typesSection.addWidget(uploadTypesGroup)
@@ -513,9 +535,12 @@ class MainWindow(QMainWindow):
         # Download file types
         downloadTypesGroup = QGroupBox("Top File Types (Downloads)")
         downloadTypesLayout = QVBoxLayout()
+        downloadTypesLayout.setContentsMargins(5, 5, 5, 5)
         self.downloadTypesTable = QTableWidget(0, 3)
         self.downloadTypesTable.setHorizontalHeaderLabels(["Extension", "Files", "Data"])
         self.downloadTypesTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.downloadTypesTable.setMaximumHeight(150)
+        self.downloadTypesTable.setAlternatingRowColors(True)
         downloadTypesLayout.addWidget(self.downloadTypesTable)
         downloadTypesGroup.setLayout(downloadTypesLayout)
         typesSection.addWidget(downloadTypesGroup)
@@ -529,10 +554,14 @@ class MainWindow(QMainWindow):
         # Create visual stats tab
         self.visualWidget = QWidget()
         self.visualLayout = QVBoxLayout(self.visualWidget)
+        self.visualLayout.setContentsMargins(5, 5, 5, 5)
+        self.visualLayout.setSpacing(8)
         
         # Create amounts graph section
         amountsGroup = QGroupBox("Transfer Amounts Over Time")
         amountsLayout = QVBoxLayout()
+        amountsLayout.setContentsMargins(5, 5, 5, 5)
+        amountsLayout.setSpacing(5)
         
         # Checkboxes for amounts metrics
         amountsCheckboxLayout = QHBoxLayout()
@@ -559,7 +588,8 @@ class MainWindow(QMainWindow):
         amountsCheckboxLayout.addStretch()
         
         # Amounts graph canvas
-        self.amountsFigure = Figure(figsize=(12, 4))
+        self.amountsFigure = Figure(figsize=(10, 3))
+        self.amountsFigure.subplots_adjust(left=0.08, right=0.95, top=0.9, bottom=0.15)
         self.amountsCanvas = FigureCanvas(self.amountsFigure)
         
         amountsLayout.addLayout(amountsCheckboxLayout)
@@ -569,6 +599,8 @@ class MainWindow(QMainWindow):
         # Create ratios graph section
         ratiosGroup = QGroupBox("Transfer Ratios Over Time")
         ratiosLayout = QVBoxLayout()
+        ratiosLayout.setContentsMargins(5, 5, 5, 5)
+        ratiosLayout.setSpacing(5)
         
         # Checkboxes for ratios metrics
         ratiosCheckboxLayout = QHBoxLayout()
@@ -585,7 +617,8 @@ class MainWindow(QMainWindow):
         ratiosCheckboxLayout.addStretch()
         
         # Ratios graph canvas
-        self.ratiosFigure = Figure(figsize=(12, 4))
+        self.ratiosFigure = Figure(figsize=(10, 3))
+        self.ratiosFigure.subplots_adjust(left=0.08, right=0.92, top=0.9, bottom=0.15)
         self.ratiosCanvas = FigureCanvas(self.ratiosFigure)
         
         ratiosLayout.addLayout(ratiosCheckboxLayout)
