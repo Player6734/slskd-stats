@@ -19,11 +19,13 @@ A GUI tool to analyze upload and download statistics from your slskd transfers d
 - Python 3.6+
 - SQLite3
 - PyQt5
+- matplotlib
+- mplcursors
 
 ## Installation
 
 1. Clone or download this repository to your local machine
-2. Ensure Python 3 and PyQt5 are installed
+2. Install dependencies: `pip3 install PyQt5 matplotlib mplcursors`
 3. Place your `transfers.db` file in the same directory as the script, or use the file browser to select database files
 
 ## Usage
@@ -39,6 +41,7 @@ With the GUI, you can:
 - Set the number of top entries to display
 - View upload and download statistics side-by-side
 - See summary statistics and detailed tables for users and file types
+- **NEW**: Visual time series graphs showing transfer trends over time
 
 ## Example Output
 
@@ -46,6 +49,10 @@ The GUI displays:
 - **Summary sections** showing total transfers, data transferred, unique users, average speeds, and error rates
 - **Top Users tables** showing users ranked by data transferred
 - **Top File Types tables** showing file extensions ranked by data transferred
+- **Visual Stats tab** with interactive time series graphs:
+  - Transfer amounts over time (uploads, downloads, errors, new users)
+  - Transfer ratios over time (speeds, error rates) with dynamic y-axes
+  - Interactive hover tooltips showing exact values and dates
 
 ## Database Compatibility
 

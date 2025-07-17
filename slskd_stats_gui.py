@@ -8,12 +8,22 @@ from collections import defaultdict
 # For GUI
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QFileDialog, QComboBox, QSplitter,
+    QPushButton, QLabel, QFileDialog, QComboBox, QSplitter, QTabWidget,
     QTableWidget, QTableWidgetItem, QHeaderView, QCheckBox,
     QSpinBox, QGroupBox, QFormLayout, QTextEdit, QMessageBox
 )
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QFont, QIcon
+
+# For graphs
+import matplotlib
+matplotlib.use('Qt5Agg')
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+import matplotlib.dates as mdates
+from matplotlib.ticker import MaxNLocator
+import mplcursors
 
 def format_size(size_bytes):
     """Format byte size to human readable format"""
@@ -188,6 +198,150 @@ def get_transfer_stats(db_paths, direction="Upload", days=None):
 
     return stats
 
+def get_time_series_data(db_paths, days=None):
+    """Get time series data for graphing"""
+    time_series = {
+        'dates': [],
+        'upload_counts': [],
+        'download_counts': [],
+        'upload_bytes': [],
+        'download_bytes': [],
+        'upload_errors': [],
+        'download_errors': [],
+        'upload_speeds': [],
+        'download_speeds': [],
+        'new_users': [],
+        'upload_error_rates': [],
+        'download_error_rates': []
+    }
+    
+    date_filter = ""
+    if days:
+        cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=days)).strftime("%Y-%m-%d")
+        date_filter = f" AND RequestedAt >= '{cutoff_date}'"
+    
+    # Collect all data points by date
+    daily_data = defaultdict(lambda: {
+        'upload_count': 0, 'download_count': 0,
+        'upload_bytes': 0, 'download_bytes': 0,
+        'upload_errors': 0, 'download_errors': 0,
+        'upload_attempts': 0, 'download_attempts': 0,
+        'upload_speeds': [], 'download_speeds': [],
+        'users': set()
+    })
+    
+    for db_path in db_paths:
+        if not os.path.exists(db_path):
+            continue
+            
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Detect database format
+            db_format = check_database_format(db_path)
+            
+            if db_format == 'new':
+                success_condition = "StateDescription='Completed, Succeeded'"
+                error_condition = "StateDescription='Completed, Errored'"
+                completed_condition = "StateDescription LIKE 'Completed%'"
+            else:
+                success_condition = "State LIKE 'Completed, Succeeded'"
+                error_condition = "State='Completed, Errored'"
+                completed_condition = "State LIKE 'Completed%'"
+            
+            # Get successful transfers
+            cursor.execute(f"""
+                SELECT Direction, Username, BytesTransferred, AverageSpeed, 
+                       DATE(RequestedAt) as date
+                FROM Transfers
+                WHERE {success_condition}
+                {date_filter}
+                ORDER BY date
+            """)
+            
+            for row in cursor.fetchall():
+                direction, username, bytes_transferred, avg_speed, date = row
+                daily_data[date]['users'].add(username)
+                
+                if direction == 'Upload':
+                    daily_data[date]['upload_count'] += 1
+                    daily_data[date]['upload_bytes'] += bytes_transferred
+                    if avg_speed > 0:
+                        daily_data[date]['upload_speeds'].append(avg_speed)
+                else:
+                    daily_data[date]['download_count'] += 1
+                    daily_data[date]['download_bytes'] += bytes_transferred
+                    if avg_speed > 0:
+                        daily_data[date]['download_speeds'].append(avg_speed)
+            
+            # Get error counts
+            cursor.execute(f"""
+                SELECT Direction, COUNT(*) as error_count, DATE(RequestedAt) as date
+                FROM Transfers
+                WHERE {error_condition}
+                {date_filter}
+                GROUP BY Direction, DATE(RequestedAt)
+            """)
+            
+            for row in cursor.fetchall():
+                direction, error_count, date = row
+                if direction == 'Upload':
+                    daily_data[date]['upload_errors'] += error_count
+                else:
+                    daily_data[date]['download_errors'] += error_count
+            
+            # Get total attempts for error rate calculation
+            cursor.execute(f"""
+                SELECT Direction, COUNT(*) as total_count, DATE(RequestedAt) as date
+                FROM Transfers
+                WHERE {completed_condition}
+                {date_filter}
+                GROUP BY Direction, DATE(RequestedAt)
+            """)
+            
+            for row in cursor.fetchall():
+                direction, total_count, date = row
+                if direction == 'Upload':
+                    daily_data[date]['upload_attempts'] += total_count
+                else:
+                    daily_data[date]['download_attempts'] += total_count
+            
+            conn.close()
+            
+        except sqlite3.Error as e:
+            print(f"Error processing database {db_path}: {e}")
+    
+    # Convert to time series format
+    sorted_dates = sorted(daily_data.keys())
+    
+    for date_str in sorted_dates:
+        date_obj = datetime.datetime.strptime(date_str, '%Y-%m-%d').date()
+        data = daily_data[date_str]
+        
+        time_series['dates'].append(date_obj)
+        time_series['upload_counts'].append(data['upload_count'])
+        time_series['download_counts'].append(data['download_count'])
+        time_series['upload_bytes'].append(data['upload_bytes'])
+        time_series['download_bytes'].append(data['download_bytes'])
+        time_series['upload_errors'].append(data['upload_errors'])
+        time_series['download_errors'].append(data['download_errors'])
+        time_series['new_users'].append(len(data['users']))
+        
+        # Calculate average speeds
+        upload_avg_speed = sum(data['upload_speeds']) / len(data['upload_speeds']) if data['upload_speeds'] else 0
+        download_avg_speed = sum(data['download_speeds']) / len(data['download_speeds']) if data['download_speeds'] else 0
+        time_series['upload_speeds'].append(upload_avg_speed)
+        time_series['download_speeds'].append(download_avg_speed)
+        
+        # Calculate error rates
+        upload_error_rate = (data['upload_errors'] / data['upload_attempts'] * 100) if data['upload_attempts'] > 0 else 0
+        download_error_rate = (data['download_errors'] / data['download_attempts'] * 100) if data['download_attempts'] > 0 else 0
+        time_series['upload_error_rates'].append(upload_error_rate)
+        time_series['download_error_rates'].append(download_error_rate)
+    
+    return time_series
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -211,7 +365,7 @@ class MainWindow(QMainWindow):
         self.createFilterSection()
         
         # Create tabs for results
-        self.createResultsTabs()
+        self.createTabs()
         
         # Create analyze button
         self.analyzeButton = QPushButton("Analyze Transfers")
@@ -275,10 +429,23 @@ class MainWindow(QMainWindow):
         filterSection.setLayout(filterLayout)
         self.mainLayout.addWidget(filterSection)
         
-    def createResultsTabs(self):
+    def createTabs(self):
+        # Create tab widget
+        self.tabs = QTabWidget()
+        
+        # Create summary stats tab
+        self.createSummaryTab()
+        
+        # Create visual stats tab
+        self.createVisualTab()
+        
+        # Add tabs to main layout
+        self.mainLayout.addWidget(self.tabs)
+    
+    def createSummaryTab(self):
         # Create a widget for all statistics
-        self.resultsWidget = QWidget()
-        self.resultsLayout = QVBoxLayout(self.resultsWidget)
+        self.summaryWidget = QWidget()
+        self.summaryLayout = QVBoxLayout(self.summaryWidget)
 
         # Summary section - horizontal layout with two text boxes
         summarySection = QHBoxLayout()
@@ -303,7 +470,7 @@ class MainWindow(QMainWindow):
         downloadSummaryGroup.setLayout(downloadSummaryLayout)
         summarySection.addWidget(downloadSummaryGroup)
 
-        self.resultsLayout.addLayout(summarySection)
+        self.summaryLayout.addLayout(summarySection)
 
         # Users section - horizontal layout with two tables
         usersSection = QHBoxLayout()
@@ -328,7 +495,7 @@ class MainWindow(QMainWindow):
         downloadUsersGroup.setLayout(downloadUsersLayout)
         usersSection.addWidget(downloadUsersGroup)
 
-        self.resultsLayout.addLayout(usersSection)
+        self.summaryLayout.addLayout(usersSection)
 
         # File types section - horizontal layout with two tables
         typesSection = QHBoxLayout()
@@ -353,10 +520,88 @@ class MainWindow(QMainWindow):
         downloadTypesGroup.setLayout(downloadTypesLayout)
         typesSection.addWidget(downloadTypesGroup)
 
-        self.resultsLayout.addLayout(typesSection)
+        self.summaryLayout.addLayout(typesSection)
 
-        # Add the results widget to the main layout
-        self.mainLayout.addWidget(self.resultsWidget)
+        # Add the summary tab
+        self.tabs.addTab(self.summaryWidget, "Summary Stats")
+    
+    def createVisualTab(self):
+        # Create visual stats tab
+        self.visualWidget = QWidget()
+        self.visualLayout = QVBoxLayout(self.visualWidget)
+        
+        # Create amounts graph section
+        amountsGroup = QGroupBox("Transfer Amounts Over Time")
+        amountsLayout = QVBoxLayout()
+        
+        # Checkboxes for amounts metrics
+        amountsCheckboxLayout = QHBoxLayout()
+        self.uploadsCheckbox = QCheckBox("Uploads")
+        self.uploadsCheckbox.setChecked(True)
+        self.uploadsCheckbox.stateChanged.connect(self.updateGraphs)
+        
+        self.downloadsCheckbox = QCheckBox("Downloads")
+        self.downloadsCheckbox.setChecked(True)
+        self.downloadsCheckbox.stateChanged.connect(self.updateGraphs)
+        
+        self.errorsCheckbox = QCheckBox("Errors")
+        self.errorsCheckbox.setChecked(True)
+        self.errorsCheckbox.stateChanged.connect(self.updateGraphs)
+        
+        self.newUsersCheckbox = QCheckBox("New Users")
+        self.newUsersCheckbox.setChecked(False)
+        self.newUsersCheckbox.stateChanged.connect(self.updateGraphs)
+        
+        amountsCheckboxLayout.addWidget(self.uploadsCheckbox)
+        amountsCheckboxLayout.addWidget(self.downloadsCheckbox)
+        amountsCheckboxLayout.addWidget(self.errorsCheckbox)
+        amountsCheckboxLayout.addWidget(self.newUsersCheckbox)
+        amountsCheckboxLayout.addStretch()
+        
+        # Amounts graph canvas
+        self.amountsFigure = Figure(figsize=(12, 4))
+        self.amountsCanvas = FigureCanvas(self.amountsFigure)
+        
+        amountsLayout.addLayout(amountsCheckboxLayout)
+        amountsLayout.addWidget(self.amountsCanvas)
+        amountsGroup.setLayout(amountsLayout)
+        
+        # Create ratios graph section
+        ratiosGroup = QGroupBox("Transfer Ratios Over Time")
+        ratiosLayout = QVBoxLayout()
+        
+        # Checkboxes for ratios metrics
+        ratiosCheckboxLayout = QHBoxLayout()
+        self.speedsCheckbox = QCheckBox("Average Speed (MB/s)")
+        self.speedsCheckbox.setChecked(True)
+        self.speedsCheckbox.stateChanged.connect(self.updateGraphs)
+        
+        self.errorRateCheckbox = QCheckBox("Error Rate (%)")
+        self.errorRateCheckbox.setChecked(True)
+        self.errorRateCheckbox.stateChanged.connect(self.updateGraphs)
+        
+        ratiosCheckboxLayout.addWidget(self.speedsCheckbox)
+        ratiosCheckboxLayout.addWidget(self.errorRateCheckbox)
+        ratiosCheckboxLayout.addStretch()
+        
+        # Ratios graph canvas
+        self.ratiosFigure = Figure(figsize=(12, 4))
+        self.ratiosCanvas = FigureCanvas(self.ratiosFigure)
+        
+        ratiosLayout.addLayout(ratiosCheckboxLayout)
+        ratiosLayout.addWidget(self.ratiosCanvas)
+        ratiosGroup.setLayout(ratiosLayout)
+        
+        # Add both graph sections to visual layout
+        self.visualLayout.addWidget(amountsGroup)
+        self.visualLayout.addWidget(ratiosGroup)
+        
+        # Add the visual tab
+        self.tabs.addTab(self.visualWidget, "Visual Stats")
+        
+        # Initialize empty graphs
+        self.timeSeriesData = None
+        self.updateGraphs()
         
     def addDatabaseFile(self):
         options = QFileDialog.Options()
@@ -390,6 +635,210 @@ class MainWindow(QMainWindow):
             table.setItem(i, 0, QTableWidgetItem(name))
             table.setItem(i, 1, QTableWidgetItem(str(stats["count"])))
             table.setItem(i, 2, QTableWidgetItem(format_size(stats["bytes"])))
+    
+    def updateGraphs(self):
+        """Update the graphs based on current data and checkbox states"""
+        if not self.timeSeriesData or not self.timeSeriesData['dates']:
+            # Clear graphs if no data
+            self.amountsFigure.clear()
+            self.ratiosFigure.clear()
+            self.amountsCanvas.draw()
+            self.ratiosCanvas.draw()
+            return
+        
+        # Update amounts graph
+        self.amountsFigure.clear()
+        ax1 = self.amountsFigure.add_subplot(111)
+        
+        dates = self.timeSeriesData['dates']
+        
+        # Plot lines and collect them for cursor tooltips
+        lines = []
+        if self.uploadsCheckbox.isChecked():
+            line = ax1.plot(dates, self.timeSeriesData['upload_counts'], label='Uploads', color='blue', linewidth=2)[0]
+            lines.append((line, 'upload_counts', 'Uploads'))
+        if self.downloadsCheckbox.isChecked():
+            line = ax1.plot(dates, self.timeSeriesData['download_counts'], label='Downloads', color='green', linewidth=2)[0]
+            lines.append((line, 'download_counts', 'Downloads'))
+        if self.errorsCheckbox.isChecked():
+            total_errors = [u + d for u, d in zip(self.timeSeriesData['upload_errors'], self.timeSeriesData['download_errors'])]
+            line = ax1.plot(dates, total_errors, label='Total Errors', color='red', linewidth=2)[0]
+            lines.append((line, 'total_errors', 'Total Errors'))
+        if self.newUsersCheckbox.isChecked():
+            line = ax1.plot(dates, self.timeSeriesData['new_users'], label='New Users', color='purple', linewidth=2)[0]
+            lines.append((line, 'new_users', 'New Users'))
+        
+        # Add interactive cursors to amounts graph
+        if lines:
+            cursor = mplcursors.cursor([line[0] for line in lines], hover=True)
+            cursor.connect('add', lambda sel: self.format_amounts_tooltip(sel, lines))
+        
+        ax1.set_xlabel('Date')
+        ax1.set_ylabel('Count')
+        ax1.set_title('Transfer Amounts Over Time')
+        ax1.legend()
+        ax1.grid(True, alpha=0.3)
+        
+        # Format x-axis dates
+        if len(dates) > 30:
+            ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
+            ax1.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+        else:
+            ax1.xaxis.set_major_locator(mdates.DayLocator())
+            ax1.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+        
+        self.amountsFigure.autofmt_xdate()
+        self.amountsFigure.tight_layout()
+        
+        # Update ratios graph with dynamic y-axes
+        self.ratiosFigure.clear()
+        
+        # Check which metrics are enabled
+        show_speeds = self.speedsCheckbox.isChecked()
+        show_error_rates = self.errorRateCheckbox.isChecked()
+        
+        # Plot ratios and collect lines for cursor tooltips
+        ratio_lines = []
+        if show_speeds and show_error_rates:
+            # Both metrics - use dual y-axis
+            ax2 = self.ratiosFigure.add_subplot(111)
+            ax3 = ax2.twinx()
+            
+            # Speed on left axis
+            upload_speeds = [s / (1024*1024) for s in self.timeSeriesData['upload_speeds']]  # Convert to MB/s
+            download_speeds = [s / (1024*1024) for s in self.timeSeriesData['download_speeds']]  # Convert to MB/s
+            
+            line1 = ax2.plot(dates, upload_speeds, label='Upload Speed', color='blue', linewidth=2)[0]
+            line2 = ax2.plot(dates, download_speeds, label='Download Speed', color='green', linewidth=2)[0]
+            ratio_lines.append((line1, 'upload_speeds', 'Upload Speed', 'MB/s'))
+            ratio_lines.append((line2, 'download_speeds', 'Download Speed', 'MB/s'))
+            ax2.set_ylabel('Speed (MB/s)', color='black')
+            ax2.tick_params(axis='y', labelcolor='black')
+            
+            # Error rates on right axis
+            line3 = ax3.plot(dates, self.timeSeriesData['upload_error_rates'], label='Upload Error Rate', color='red', linewidth=2, linestyle='--')[0]
+            line4 = ax3.plot(dates, self.timeSeriesData['download_error_rates'], label='Download Error Rate', color='orange', linewidth=2, linestyle='--')[0]
+            ratio_lines.append((line3, 'upload_error_rates', 'Upload Error Rate', '%'))
+            ratio_lines.append((line4, 'download_error_rates', 'Download Error Rate', '%'))
+            ax3.set_ylabel('Error Rate (%)', color='black')
+            ax3.tick_params(axis='y', labelcolor='black')
+            
+            # Combine legends
+            lines = [line1, line2, line3, line4]
+            labels = [l.get_label() for l in lines]
+            ax2.legend(lines, labels, loc='upper left')
+            
+        elif show_speeds:
+            # Only speeds - single y-axis
+            ax2 = self.ratiosFigure.add_subplot(111)
+            
+            upload_speeds = [s / (1024*1024) for s in self.timeSeriesData['upload_speeds']]  # Convert to MB/s
+            download_speeds = [s / (1024*1024) for s in self.timeSeriesData['download_speeds']]  # Convert to MB/s
+            
+            line1 = ax2.plot(dates, upload_speeds, label='Upload Speed', color='blue', linewidth=2)[0]
+            line2 = ax2.plot(dates, download_speeds, label='Download Speed', color='green', linewidth=2)[0]
+            ratio_lines.append((line1, 'upload_speeds', 'Upload Speed', 'MB/s'))
+            ratio_lines.append((line2, 'download_speeds', 'Download Speed', 'MB/s'))
+            ax2.set_ylabel('Speed (MB/s)')
+            ax2.legend()
+            
+        elif show_error_rates:
+            # Only error rates - single y-axis
+            ax2 = self.ratiosFigure.add_subplot(111)
+            
+            line1 = ax2.plot(dates, self.timeSeriesData['upload_error_rates'], label='Upload Error Rate', color='red', linewidth=2)[0]
+            line2 = ax2.plot(dates, self.timeSeriesData['download_error_rates'], label='Download Error Rate', color='orange', linewidth=2)[0]
+            ratio_lines.append((line1, 'upload_error_rates', 'Upload Error Rate', '%'))
+            ratio_lines.append((line2, 'download_error_rates', 'Download Error Rate', '%'))
+            ax2.set_ylabel('Error Rate (%)')
+            ax2.legend()
+        
+        # Add interactive cursors to ratios graph
+        if ratio_lines:
+            cursor = mplcursors.cursor([line[0] for line in ratio_lines], hover=True)
+            cursor.connect('add', lambda sel: self.format_ratios_tooltip(sel, ratio_lines))
+        
+        if show_speeds or show_error_rates:
+            ax2.set_xlabel('Date')
+            ax2.set_title('Transfer Ratios Over Time')
+            ax2.grid(True, alpha=0.3)
+            
+            # Format x-axis dates
+            if len(dates) > 30:
+                ax2.xaxis.set_major_locator(mdates.WeekdayLocator())
+                ax2.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+            else:
+                ax2.xaxis.set_major_locator(mdates.DayLocator())
+                ax2.xaxis.set_major_formatter(mdates.DateFormatter('%m/%d'))
+        
+        self.ratiosFigure.autofmt_xdate()
+        self.ratiosFigure.tight_layout()
+        
+        # Refresh canvases
+        self.amountsCanvas.draw()
+        self.ratiosCanvas.draw()
+    
+    def format_amounts_tooltip(self, sel, lines):
+        """Format tooltip for amounts graph"""
+        try:
+            # Get the index from the selection
+            index = int(sel.target.index)
+            if index >= len(self.timeSeriesData['dates']):
+                return
+            
+            date = self.timeSeriesData['dates'][index]
+            
+            # Find which line was selected
+            line_obj = sel.artist
+            for line, data_key, label in lines:
+                if line == line_obj:
+                    if data_key == 'total_errors':
+                        # Special case for total errors (calculated)
+                        upload_errors = self.timeSeriesData['upload_errors'][index]
+                        download_errors = self.timeSeriesData['download_errors'][index]
+                        total_errors = upload_errors + download_errors
+                        value = total_errors
+                    else:
+                        value = self.timeSeriesData[data_key][index]
+                    
+                    # Format the tooltip
+                    date_str = date.strftime('%Y-%m-%d')
+                    sel.annotation.set_text(f'{label}\nDate: {date_str}\nValue: {value:,}')
+                    break
+        except (AttributeError, IndexError, ValueError):
+            # Fallback to basic tooltip if index access fails
+            sel.annotation.set_text(f'Data point')
+    
+    def format_ratios_tooltip(self, sel, lines):
+        """Format tooltip for ratios graph"""
+        try:
+            # Get the index from the selection
+            index = int(sel.target.index)
+            if index >= len(self.timeSeriesData['dates']):
+                return
+            
+            date = self.timeSeriesData['dates'][index]
+            
+            # Find which line was selected
+            line_obj = sel.artist
+            for line, data_key, label, unit in lines:
+                if line == line_obj:
+                    if 'speeds' in data_key:
+                        # Convert from bytes/s to MB/s for display
+                        value = self.timeSeriesData[data_key][index] / (1024*1024)
+                        value_str = f'{value:.2f} {unit}'
+                    else:
+                        # Error rates
+                        value = self.timeSeriesData[data_key][index]
+                        value_str = f'{value:.2f}{unit}'
+                    
+                    # Format the tooltip
+                    date_str = date.strftime('%Y-%m-%d')
+                    sel.annotation.set_text(f'{label}\nDate: {date_str}\nValue: {value_str}')
+                    break
+        except (AttributeError, IndexError, ValueError):
+            # Fallback to basic tooltip if index access fails
+            sel.annotation.set_text(f'Data point')
     
     def analyzeTransfers(self):
         if not self.db_paths:
@@ -479,6 +928,10 @@ class MainWindow(QMainWindow):
             self.populateTable(self.downloadTypesTable, sorted_extensions, top_n)
         else:
             self.downloadSummary.setText("No download data found for the specified period.")
+        
+        # Get time series data and update graphs
+        self.timeSeriesData = get_time_series_data(self.db_paths, days)
+        self.updateGraphs()
 
 def main():
     # Launch GUI application
