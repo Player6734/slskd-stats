@@ -402,11 +402,12 @@ class MainWindow(QMainWindow):
         separator.setAlignment(Qt.AlignCenter)
         separator.setStyleSheet("color: gray; font-size: 16px; padding: 0 10px;")
         
-        # Add all sections to main layout with proper alignment
+        # Add all sections to main layout with centered separator
+        controlsLayout.addStretch()  # Push everything to center
         controlsLayout.addLayout(dbButtonsLayout)
         controlsLayout.addWidget(separator)
         controlsLayout.addLayout(analyzeControlsLayout)
-        controlsLayout.addStretch()
+        controlsLayout.addStretch()  # Balance the other side
         
         # Hidden variables to replace checkboxes
         self.uploadsCheckBox = True
