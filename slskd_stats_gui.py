@@ -375,9 +375,10 @@ class MainWindow(QMainWindow):
         controlsGroup = QGroupBox("Controls")
         controlsLayout = QHBoxLayout()
         
-        # Database controls
+        # Database controls - left side
         dbControlsLayout = QVBoxLayout()
         
+        # Database buttons in horizontal layout
         dbButtonsLayout = QHBoxLayout()
         addDbButton = QPushButton("Add Database File")
         addDbButton.clicked.connect(self.addDatabaseFile)
@@ -386,6 +387,7 @@ class MainWindow(QMainWindow):
         dbButtonsLayout.addWidget(addDbButton)
         dbButtonsLayout.addWidget(clearDbButton)
         
+        # Database status label
         self.dbPathsLabel = QLabel("No database files selected")
         self.dbPathsLabel.setMaximumWidth(200)
         self.dbPathsLabel.setWordWrap(True)
@@ -393,27 +395,29 @@ class MainWindow(QMainWindow):
         dbControlsLayout.addLayout(dbButtonsLayout)
         dbControlsLayout.addWidget(self.dbPathsLabel)
         
-        # Analyze controls (period + button)
-        analyzeControlsLayout = QVBoxLayout()
+        # Analysis controls - right side
+        analyzeControlsLayout = QHBoxLayout()
+        analyzeControlsLayout.addWidget(QLabel("Time period:"))
         
-        # Time period and analyze button in same row
-        analyzeRowLayout = QHBoxLayout()
-        analyzeRowLayout.addWidget(QLabel("Time period:"))
         self.periodComboBox = QComboBox()
         self.periodComboBox.addItems(["All time", "Last month", "Last year"])
         self.periodComboBox.setCurrentText("All time")
-        analyzeRowLayout.addWidget(self.periodComboBox)
+        analyzeControlsLayout.addWidget(self.periodComboBox)
         
         self.analyzeButton = QPushButton("Analyze Transfers")
         self.analyzeButton.clicked.connect(self.analyzeTransfers)
-        analyzeRowLayout.addWidget(self.analyzeButton)
+        analyzeControlsLayout.addWidget(self.analyzeButton)
         
-        analyzeControlsLayout.addLayout(analyzeRowLayout)
+        # Create a frame for the vertical separator
+        separator = QLabel("|")
+        separator.setAlignment(Qt.AlignCenter)
+        separator.setStyleSheet("color: gray; font-size: 16px; padding: 0 10px;")
         
-        # Add all sections to main layout
+        # Add all sections to main layout with proper alignment
         controlsLayout.addLayout(dbControlsLayout)
-        controlsLayout.addStretch()
+        controlsLayout.addWidget(separator)
         controlsLayout.addLayout(analyzeControlsLayout)
+        controlsLayout.addStretch()
         
         # Hidden variables to replace checkboxes
         self.uploadsCheckBox = True
