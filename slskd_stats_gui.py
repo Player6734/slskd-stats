@@ -23,7 +23,6 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.dates as mdates
 from matplotlib.ticker import MaxNLocator
-import mplcursors
 
 def format_size(size_bytes):
     """Format byte size to human readable format"""
@@ -432,6 +431,9 @@ class MainWindow(QMainWindow):
         # Create visual stats tab
         self.createVisualTab()
         
+        # Create popularity stats tab
+        self.createPopularityTab()
+        
         # Add tabs to main layout
         self.mainLayout.addWidget(self.tabs)
     
@@ -476,6 +478,7 @@ class MainWindow(QMainWindow):
         self.uploadUsersTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.uploadUsersTable.setMinimumHeight(100)
         self.uploadUsersTable.setAlternatingRowColors(True)
+        self.uploadUsersTable.setEditTriggers(QTableWidget.NoEditTriggers)
         uploadUsersLayout.addWidget(self.uploadUsersTable)
         uploadUsersGroup.setLayout(uploadUsersLayout)
         usersSection.addWidget(uploadUsersGroup)
@@ -488,6 +491,7 @@ class MainWindow(QMainWindow):
         self.downloadUsersTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.downloadUsersTable.setMinimumHeight(100)
         self.downloadUsersTable.setAlternatingRowColors(True)
+        self.downloadUsersTable.setEditTriggers(QTableWidget.NoEditTriggers)
         downloadUsersLayout.addWidget(self.downloadUsersTable)
         downloadUsersGroup.setLayout(downloadUsersLayout)
         usersSection.addWidget(downloadUsersGroup)
@@ -505,6 +509,7 @@ class MainWindow(QMainWindow):
         self.uploadTypesTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.uploadTypesTable.setMinimumHeight(100)
         self.uploadTypesTable.setAlternatingRowColors(True)
+        self.uploadTypesTable.setEditTriggers(QTableWidget.NoEditTriggers)
         uploadTypesLayout.addWidget(self.uploadTypesTable)
         uploadTypesGroup.setLayout(uploadTypesLayout)
         typesSection.addWidget(uploadTypesGroup)
@@ -517,6 +522,7 @@ class MainWindow(QMainWindow):
         self.downloadTypesTable.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.downloadTypesTable.setMinimumHeight(100)
         self.downloadTypesTable.setAlternatingRowColors(True)
+        self.downloadTypesTable.setEditTriggers(QTableWidget.NoEditTriggers)
         downloadTypesLayout.addWidget(self.downloadTypesTable)
         downloadTypesGroup.setLayout(downloadTypesLayout)
         typesSection.addWidget(downloadTypesGroup)
@@ -608,6 +614,81 @@ class MainWindow(QMainWindow):
         self.timeSeriesData = None
         self.updateGraphs()
         
+    def createPopularityTab(self):
+        # Create popularity stats tab
+        self.popularityWidget = QWidget()
+        self.popularityLayout = QVBoxLayout(self.popularityWidget)
+        
+        # Create compact top entries selector with fixed height
+        settingsWidget = QWidget()
+        settingsWidget.setMaximumHeight(35)  # Fixed height to prevent scaling
+        topEntriesLayout = QHBoxLayout(settingsWidget)
+        topEntriesLayout.setContentsMargins(5, 5, 5, 5)  # Minimal margins
+        
+        topEntriesLayout.addWidget(QLabel("Show top:"))
+        
+        self.topEntriesSpinBox = QSpinBox()
+        self.topEntriesSpinBox.setMinimum(5)
+        self.topEntriesSpinBox.setMaximum(50)
+        self.topEntriesSpinBox.setValue(10)
+        self.topEntriesSpinBox.valueChanged.connect(self.updatePopularityStats)
+        topEntriesLayout.addWidget(self.topEntriesSpinBox)
+        
+        topEntriesLayout.addWidget(QLabel("entries"))
+        topEntriesLayout.addStretch()  # Push everything to the left
+        
+        self.popularityLayout.addWidget(settingsWidget)
+        
+        # Create splitter for side-by-side layout
+        popularitySplitter = QSplitter(Qt.Horizontal)
+        
+        # Create artists section
+        artistsGroup = QGroupBox("Top Artists by Uploads")
+        artistsLayout = QVBoxLayout()
+        
+        self.artistsTable = QTableWidget()
+        self.artistsTable.setColumnCount(3)
+        self.artistsTable.setHorizontalHeaderLabels(["Artist", "Uploads", "Total Data"])
+        self.artistsTable.horizontalHeader().setStretchLastSection(True)
+        self.artistsTable.setAlternatingRowColors(True)
+        self.artistsTable.setSortingEnabled(True)
+        self.artistsTable.setEditTriggers(QTableWidget.NoEditTriggers)
+        artistsLayout.addWidget(self.artistsTable)
+        
+        # Artists chart
+        self.artistsFigure = Figure(figsize=(8, 6))
+        self.artistsCanvas = FigureCanvas(self.artistsFigure)
+        artistsLayout.addWidget(self.artistsCanvas, 0, Qt.AlignCenter)
+        
+        artistsGroup.setLayout(artistsLayout)
+        popularitySplitter.addWidget(artistsGroup)
+        
+        # Create albums section
+        albumsGroup = QGroupBox("Top Albums by Uploads")
+        albumsLayout = QVBoxLayout()
+        
+        self.albumsTable = QTableWidget()
+        self.albumsTable.setColumnCount(4)
+        self.albumsTable.setHorizontalHeaderLabels(["Artist", "Album", "Uploads", "Total Data"])
+        self.albumsTable.horizontalHeader().setStretchLastSection(True)
+        self.albumsTable.setAlternatingRowColors(True)
+        self.albumsTable.setSortingEnabled(True)
+        self.albumsTable.setEditTriggers(QTableWidget.NoEditTriggers)
+        albumsLayout.addWidget(self.albumsTable)
+        
+        # Albums chart
+        self.albumsFigure = Figure(figsize=(8, 6))
+        self.albumsCanvas = FigureCanvas(self.albumsFigure)
+        albumsLayout.addWidget(self.albumsCanvas, 0, Qt.AlignCenter)
+        
+        albumsGroup.setLayout(albumsLayout)
+        popularitySplitter.addWidget(albumsGroup)
+        
+        self.popularityLayout.addWidget(popularitySplitter)
+        
+        # Add the popularity tab
+        self.tabs.addTab(self.popularityWidget, "Popularity Stats")
+        
     def addDatabaseFile(self):
         options = QFileDialog.Options()
         files, _ = QFileDialog.getOpenFileNames(
@@ -677,10 +758,8 @@ class MainWindow(QMainWindow):
             if plot_result:
                 lines.append((plot_result[0], 'new_users', 'New Users'))
         
-        # Add interactive cursors to amounts graph
-        if lines:
-            cursor = mplcursors.cursor([line[0] for line in lines], hover=True)
-            cursor.connect('add', lambda sel: self.format_amounts_tooltip(sel, lines))
+        # Interactive functionality disabled to avoid compatibility issues
+        # Charts remain readable with legends and axis labels
         
         ax1.set_xlabel('Date')
         ax1.set_ylabel('Count')
@@ -780,10 +859,8 @@ class MainWindow(QMainWindow):
             ax2.set_ylabel('Error Rate (%)')
             ax2.legend()
         
-        # Add interactive cursors to ratios graph
-        if ratio_lines:
-            cursor = mplcursors.cursor([line[0] for line in ratio_lines], hover=True)
-            cursor.connect('add', lambda sel: self.format_ratios_tooltip(sel, ratio_lines))
+        # Interactive functionality disabled to avoid compatibility issues
+        # Charts remain readable with legends and axis labels
         
         if show_speeds or show_error_rates:
             ax2.set_xlabel('Date')
@@ -806,96 +883,12 @@ class MainWindow(QMainWindow):
         self.ratiosCanvas.draw()
     
     def format_amounts_tooltip(self, sel, lines):
-        """Format tooltip for amounts graph"""
-        try:
-            # Get the index from the selection - mplcursors uses different ways to access index
-            if hasattr(sel.target, 'index'):
-                index = int(sel.target.index)
-            elif hasattr(sel, 'index'):
-                index = int(sel.index)
-            else:
-                # Try to get index from the target coordinates
-                target_x = sel.target[0]
-                # Find closest date
-                dates = [mdates.date2num(d) for d in self.timeSeriesData['dates']]
-                index = min(range(len(dates)), key=lambda i: abs(dates[i] - target_x))
-            
-            if index >= len(self.timeSeriesData['dates']):
-                sel.annotation.set_text('Index out of range')
-                return
-            
-            date = self.timeSeriesData['dates'][index]
-            
-            # Find which line was selected
-            line_obj = sel.artist
-            for line, data_key, label in lines:
-                if line == line_obj:
-                    if data_key == 'total_errors':
-                        # Special case for total errors (calculated)
-                        upload_errors = self.timeSeriesData['upload_errors'][index]
-                        download_errors = self.timeSeriesData['download_errors'][index]
-                        total_errors = upload_errors + download_errors
-                        value = total_errors
-                    else:
-                        value = self.timeSeriesData[data_key][index]
-                    
-                    # Format the tooltip
-                    date_str = date.strftime('%Y-%m-%d')
-                    sel.annotation.set_text(f'{label}\nDate: {date_str}\nValue: {value:,}')
-                    return
-            
-            # If we couldn't find the line, show basic info
-            sel.annotation.set_text(f'Date: {date.strftime("%Y-%m-%d")}')
-            
-        except (AttributeError, IndexError, ValueError, TypeError) as e:
-            # More detailed error info for debugging
-            sel.annotation.set_text(f'Error: {str(e)[:50]}')
+        """Format tooltip for amounts graph - disabled"""
+        pass
     
     def format_ratios_tooltip(self, sel, lines):
-        """Format tooltip for ratios graph"""
-        try:
-            # Get the index from the selection - mplcursors uses different ways to access index
-            if hasattr(sel.target, 'index'):
-                index = int(sel.target.index)
-            elif hasattr(sel, 'index'):
-                index = int(sel.index)
-            else:
-                # Try to get index from the target coordinates
-                target_x = sel.target[0]
-                # Find closest date
-                dates = [mdates.date2num(d) for d in self.timeSeriesData['dates']]
-                index = min(range(len(dates)), key=lambda i: abs(dates[i] - target_x))
-            
-            if index >= len(self.timeSeriesData['dates']):
-                sel.annotation.set_text('Index out of range')
-                return
-            
-            date = self.timeSeriesData['dates'][index]
-            
-            # Find which line was selected
-            line_obj = sel.artist
-            for line, data_key, label, unit in lines:
-                if line == line_obj:
-                    if 'speeds' in data_key:
-                        # Convert from bytes/s to MB/s for display
-                        value = self.timeSeriesData[data_key][index] / (1024*1024)
-                        value_str = f'{value:.2f} {unit}'
-                    else:
-                        # Error rates
-                        value = self.timeSeriesData[data_key][index]
-                        value_str = f'{value:.2f}{unit}'
-                    
-                    # Format the tooltip
-                    date_str = date.strftime('%Y-%m-%d')
-                    sel.annotation.set_text(f'{label}\nDate: {date_str}\nValue: {value_str}')
-                    return
-            
-            # If we couldn't find the line, show basic info
-            sel.annotation.set_text(f'Date: {date.strftime("%Y-%m-%d")}')
-            
-        except (AttributeError, IndexError, ValueError, TypeError) as e:
-            # More detailed error info for debugging
-            sel.annotation.set_text(f'Error: {str(e)[:50]}')
+        """Format tooltip for ratios graph - disabled"""
+        pass
     
     def analyzeTransfers(self):
         if not self.db_paths:
@@ -989,6 +982,407 @@ class MainWindow(QMainWindow):
         # Get time series data and update graphs
         self.timeSeriesData = get_time_series_data(self.db_paths, days)
         self.updateGraphs()
+        
+        # Update popularity stats
+        self.updatePopularityStats()
+        
+    def updatePopularityStats(self):
+        if not self.db_paths:
+            return
+            
+        # Get current period setting
+        period_text = self.periodComboBox.currentText()
+        if period_text == "All time":
+            days = None
+        elif period_text == "Last month":
+            days = 30
+        elif period_text == "Last year":
+            days = 365
+        else:
+            days = None
+            
+        top_n = self.topEntriesSpinBox.value()
+        
+        # Analyze library format first
+        format_info = analyze_library_format(self.db_paths)
+        
+        # Get popularity data
+        artist_stats, album_stats = get_popularity_stats(self.db_paths, days)
+        
+        # Check if we have data and good format compatibility
+        if not artist_stats and not album_stats:
+            self.showPopularityError("No successful upload transfers found.", format_info)
+            return
+        elif format_info['match_percentage'] < 50:
+            self.showPopularityWarning(format_info)
+        
+        # Update artists table and chart
+        self.updateArtistsTable(artist_stats, top_n)
+        self.updateArtistsChart(artist_stats, top_n)
+        
+        # Update albums table and chart
+        self.updateAlbumsTable(album_stats, top_n)
+        self.updateAlbumsChart(album_stats, top_n)
+        
+    def updateArtistsTable(self, artist_stats, top_n):
+        # Sort by transfer count
+        sorted_artists = sorted(artist_stats.items(), key=lambda x: x[1]['count'], reverse=True)[:top_n]
+        
+        self.artistsTable.setRowCount(len(sorted_artists))
+        for i, (artist, stats) in enumerate(sorted_artists):
+            self.artistsTable.setItem(i, 0, QTableWidgetItem(artist))
+            self.artistsTable.setItem(i, 1, QTableWidgetItem(str(stats['count'])))
+            self.artistsTable.setItem(i, 2, QTableWidgetItem(format_size(stats['bytes'])))
+            
+    def updateArtistsChart(self, artist_stats, top_n):
+        self.artistsFigure.clear()
+        if not artist_stats:
+            self.artistsCanvas.draw()
+            return
+            
+        # Sort by transfer count
+        sorted_artists = sorted(artist_stats.items(), key=lambda x: x[1]['count'], reverse=True)[:top_n]
+        
+        ax = self.artistsFigure.add_subplot(111)
+        artists = [item[0] for item in sorted_artists]
+        counts = [item[1]['count'] for item in sorted_artists]
+        
+        # Truncate long artist names for display
+        max_name_length = 25
+        truncated_artists = []
+        for artist in artists:
+            if len(artist) > max_name_length:
+                truncated_artists.append(artist[:max_name_length-3] + "...")
+            else:
+                truncated_artists.append(artist)
+        
+        # Create horizontal bar chart
+        bars = ax.barh(range(len(truncated_artists)), counts)
+        ax.set_yticks(range(len(truncated_artists)))
+        ax.set_yticklabels(truncated_artists, fontsize=8)
+        ax.set_xlabel('Uploads')
+        ax.set_title(f'Top {len(artists)} Artists by Uploads')
+        
+        # Add value labels on bars
+        for i, (bar, count) in enumerate(zip(bars, counts)):
+            ax.text(bar.get_width() + max(counts) * 0.01, bar.get_y() + bar.get_height()/2, 
+                   str(count), ha='left', va='center', fontsize=8)
+        
+        # Expand x-axis to accommodate labels
+        ax.set_xlim(0, max(counts) * 1.15)
+        
+        ax.grid(axis='x', alpha=0.3)
+        self.artistsFigure.tight_layout()
+        
+        # Add custom hover functionality
+        self.artistsCanvas.mpl_connect('motion_notify_event', 
+            lambda event: self.onArtistHover(event, bars, artists, counts))
+        
+        self.artistsCanvas.draw()
+        
+    def updateAlbumsTable(self, album_stats, top_n):
+        # Sort by transfer count
+        sorted_albums = sorted(album_stats.items(), key=lambda x: x[1]['count'], reverse=True)[:top_n]
+        
+        self.albumsTable.setRowCount(len(sorted_albums))
+        for i, (album_key, stats) in enumerate(sorted_albums):
+            artist, album = album_key
+            self.albumsTable.setItem(i, 0, QTableWidgetItem(artist))
+            self.albumsTable.setItem(i, 1, QTableWidgetItem(album))
+            self.albumsTable.setItem(i, 2, QTableWidgetItem(str(stats['count'])))
+            self.albumsTable.setItem(i, 3, QTableWidgetItem(format_size(stats['bytes'])))
+            
+    def updateAlbumsChart(self, album_stats, top_n):
+        self.albumsFigure.clear()
+        if not album_stats:
+            self.albumsCanvas.draw()
+            return
+            
+        # Sort by transfer count
+        sorted_albums = sorted(album_stats.items(), key=lambda x: x[1]['count'], reverse=True)[:top_n]
+        
+        ax = self.albumsFigure.add_subplot(111)
+        album_labels = [item[0][1] for item in sorted_albums]  # Just album name, not artist
+        counts = [item[1]['count'] for item in sorted_albums]
+        
+        # Truncate long album labels for display
+        max_label_length = 30
+        truncated_labels = []
+        for label in album_labels:
+            if len(label) > max_label_length:
+                truncated_labels.append(label[:max_label_length-3] + "...")
+            else:
+                truncated_labels.append(label)
+        
+        # Create horizontal bar chart
+        bars = ax.barh(range(len(truncated_labels)), counts)
+        ax.set_yticks(range(len(truncated_labels)))
+        ax.set_yticklabels(truncated_labels, fontsize=7)
+        ax.set_xlabel('Uploads')
+        ax.set_title(f'Top {len(album_labels)} Albums by Uploads')
+        
+        # Add value labels on bars
+        for i, (bar, count) in enumerate(zip(bars, counts)):
+            ax.text(bar.get_width() + max(counts) * 0.01, bar.get_y() + bar.get_height()/2, 
+                   str(count), ha='left', va='center', fontsize=7)
+        
+        # Expand x-axis to accommodate labels
+        ax.set_xlim(0, max(counts) * 1.15)
+        
+        ax.grid(axis='x', alpha=0.3)
+        try:
+            self.albumsFigure.tight_layout()
+        except:
+            pass  # Ignore tight_layout warnings for long album names
+        
+        # Add custom hover functionality (pass full artist-album info for tooltips)
+        full_album_labels = [f"{item[0][0]} - {item[0][1]}" for item in sorted_albums]
+        self.albumsCanvas.mpl_connect('motion_notify_event', 
+            lambda event: self.onAlbumHover(event, bars, full_album_labels, counts))
+        
+        self.albumsCanvas.draw()
+        
+    def onArtistHover(self, event, bars, artists, counts):
+        """Handle hover events on artist chart bars"""
+        if event.inaxes is None:
+            self.artistsCanvas.setToolTip("")
+            return
+            
+        for i, bar in enumerate(bars):
+            if bar.contains(event)[0]:
+                # Show tooltip with full artist name and count
+                tooltip_text = f"{artists[i]}\n{counts[i]} uploads"
+                self.artistsCanvas.setToolTip(tooltip_text)
+                return
+        
+        # Clear tooltip when not hovering over a bar
+        self.artistsCanvas.setToolTip("")
+        
+    def onAlbumHover(self, event, bars, album_labels, counts):
+        """Handle hover events on album chart bars"""
+        if event.inaxes is None:
+            self.albumsCanvas.setToolTip("")
+            return
+            
+        for i, bar in enumerate(bars):
+            if bar.contains(event)[0]:
+                # Show tooltip with full album name and count
+                tooltip_text = f"{album_labels[i]}\n{counts[i]} uploads"
+                self.albumsCanvas.setToolTip(tooltip_text)
+                return
+        
+        # Clear tooltip when not hovering over a bar
+        self.albumsCanvas.setToolTip("")
+        
+    def showPopularityError(self, message, format_info):
+        """Show error message and clear popularity displays"""
+        # Clear tables and charts
+        self.artistsTable.setRowCount(0)
+        self.albumsTable.setRowCount(0)
+        
+        self.artistsFigure.clear()
+        self.albumsFigure.clear()
+        
+        # Show explanatory text in charts
+        self.showPopularityExplanation(self.artistsFigure, self.artistsCanvas, message, format_info)
+        self.showPopularityExplanation(self.albumsFigure, self.albumsCanvas, message, format_info)
+        
+    def showPopularityWarning(self, format_info):
+        """Show warning about library format compatibility"""
+        warning_msg = f"Library format compatibility: {format_info['match_percentage']:.1f}%"
+        print(f"Warning: {warning_msg}")  # Console warning
+        
+    def showPopularityExplanation(self, figure, canvas, message, format_info):
+        """Show explanation text in the chart area"""
+        ax = figure.add_subplot(111)
+        ax.axis('off')
+        
+        explanation_text = f"""Popularity Stats Requirements:
+
+{message}
+
+How it works:
+• Analyzes successful upload transfers only
+• Extracts artist and album from file paths
+• Expected format: /path/Music/Artist/Album/Track.ext
+
+Library Analysis:
+• Total files analyzed: {format_info['total_files']}
+• Compatible files: {format_info['matching_files']} ({format_info['match_percentage']:.1f}%)
+
+Example paths from your library:"""
+        
+        if format_info['sample_paths']:
+            explanation_text += "\n\n" + "\n".join(f"• {path}" for path in format_info['sample_paths'][:5])
+        
+        if format_info['match_percentage'] < 50:
+            explanation_text += f"""
+
+⚠️  Low compatibility detected ({format_info['match_percentage']:.1f}%)
+Your music library structure may not match the expected format.
+Consider organizing music files as: /Music/Artist/Album/Track.ext"""
+            
+        ax.text(0.05, 0.95, explanation_text, transform=ax.transAxes, 
+                fontsize=9, verticalalignment='top', fontfamily='monospace',
+                bbox=dict(boxstyle="round,pad=0.5", facecolor="lightgray", alpha=0.8))
+        
+        canvas.draw()
+
+def analyze_library_format(db_paths):
+    """Analyze the library format to determine if it matches expected structure"""
+    total_files = 0
+    matching_files = 0
+    sample_paths = []
+    
+    for db_path in db_paths:
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Get a sample of successful upload filenames
+            cursor.execute("""
+                SELECT Filename 
+                FROM Transfers 
+                WHERE State = 48 AND Direction = 'Upload' AND Filename IS NOT NULL
+                LIMIT 100
+            """)
+            
+            rows = cursor.fetchall()
+            for (filename,) in rows:
+                total_files += 1
+                sample_paths.append(filename)
+                
+                # Check if it matches expected format: /path/Music/{Artist}/{Album}/{Track}
+                if filename and '/Music/' in filename:
+                    try:
+                        parts = filename.split('/Music/')
+                        if len(parts) > 1:
+                            music_path = parts[1]
+                            path_parts = music_path.split('/')
+                            if len(path_parts) >= 2 and path_parts[0] and path_parts[1]:
+                                matching_files += 1
+                    except:
+                        continue
+            
+            conn.close()
+            
+        except sqlite3.Error:
+            continue
+    
+    match_percentage = (matching_files / total_files * 100) if total_files > 0 else 0
+    return {
+        'total_files': total_files,
+        'matching_files': matching_files,
+        'match_percentage': match_percentage,
+        'sample_paths': sample_paths[:10]  # Keep first 10 as examples
+    }
+
+def clean_album_name(artist, album):
+    """Smart cleaning of album names to remove redundant artist information"""
+    if not artist or not album:
+        return album
+    
+    artist_lower = artist.lower().strip()
+    album_lower = album.lower().strip()
+    
+    # Common patterns to clean
+    patterns_to_try = [
+        # Pattern: "Artist - Album Title"
+        f"{artist_lower} - ",
+        f"{artist_lower} – ",  # em dash
+        f"{artist_lower} — ",  # em dash variant
+        
+        # Pattern: "Artist: Album Title"
+        f"{artist_lower}: ",
+        f"{artist_lower} : ",
+        
+        # Pattern: "Artist_ Album Title" or similar separators
+        f"{artist_lower}_ ",
+        f"{artist_lower} _ ",
+    ]
+    
+    cleaned_album = album
+    for pattern in patterns_to_try:
+        if album_lower.startswith(pattern):
+            cleaned_album = album[len(pattern):]
+            break
+    
+    # Additional cleaning: remove extra whitespace and dashes
+    cleaned_album = cleaned_album.strip(' -–—_')
+    
+    # If cleaning resulted in empty string, return original
+    if not cleaned_album:
+        return album
+        
+    # If cleaning removed too much (less than 3 chars), return original
+    if len(cleaned_album) < 3:
+        return album
+    
+    return cleaned_album
+
+def get_popularity_stats(db_paths, days=None):
+    """Get artist and album popularity statistics from successful transfers"""
+    artist_stats = defaultdict(lambda: {'count': 0, 'bytes': 0})
+    album_stats = defaultdict(lambda: {'count': 0, 'bytes': 0})
+    
+    # Create WHERE clause for time filtering
+    where_clause = "WHERE State = 48 AND Direction = 'Upload'"  # Only successful uploads
+    params = []
+    
+    if days is not None:
+        where_clause += " AND RequestedAt >= ?"
+        cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
+        params.append(cutoff_date)
+    
+    for db_path in db_paths:
+        try:
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            query = f"""
+                SELECT Filename, Size 
+                FROM Transfers 
+                {where_clause}
+            """
+            
+            cursor.execute(query, params)
+            rows = cursor.fetchall()
+            
+            for filename, size in rows:
+                # Parse filename to extract artist and album
+                # Expected format: /data/Music/{Artist}/{Album}/{Track}
+                if filename and '/Music/' in filename:
+                    try:
+                        parts = filename.split('/Music/')
+                        if len(parts) > 1:
+                            music_path = parts[1]
+                            path_parts = music_path.split('/')
+                            if len(path_parts) >= 2:
+                                artist = path_parts[0]
+                                raw_album = path_parts[1]
+                                
+                                # Clean album name to remove redundant artist info
+                                cleaned_album = clean_album_name(artist, raw_album)
+                                
+                                # Update artist stats
+                                artist_stats[artist]['count'] += 1
+                                artist_stats[artist]['bytes'] += size
+                                
+                                # Update album stats using cleaned album name
+                                album_key = (artist, cleaned_album)
+                                album_stats[album_key]['count'] += 1
+                                album_stats[album_key]['bytes'] += size
+                    except:
+                        # Skip files that don't match expected format
+                        continue
+            
+            conn.close()
+            
+        except sqlite3.Error as e:
+            print(f"Database error for {db_path}: {e}")
+            continue
+    
+    return dict(artist_stats), dict(album_stats)
 
 def main():
     # Launch GUI application

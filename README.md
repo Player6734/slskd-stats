@@ -12,6 +12,8 @@ A GUI tool to analyze upload and download statistics from your slskd transfers d
 - Lists top users by data transferred
 - Shows statistics by file type
 - Filter statistics by time period (All time, Last month, Last year)
+- **NEW**: Artist and album popularity statistics based on successful uploads
+- Smart album name cleaning (removes redundant artist names from folder names)
 - User-friendly graphical interface with summary and detailed tables
 
 ## Requirements
@@ -20,12 +22,11 @@ A GUI tool to analyze upload and download statistics from your slskd transfers d
 - SQLite3
 - PyQt5
 - matplotlib
-- mplcursors
 
 ## Installation
 
 1. Clone or download this repository to your local machine
-2. Install dependencies: `pip3 install PyQt5 matplotlib mplcursors`
+2. Install dependencies: `pip3 install PyQt5 matplotlib`
 3. Place your `transfers.db` file in the same directory as the script, or use the file browser to select database files
 
 ## Usage
@@ -42,6 +43,7 @@ With the GUI, you can:
 - View upload and download statistics side-by-side
 - See summary statistics and detailed tables for users and file types
 - **NEW**: Visual time series graphs showing transfer trends over time
+- **NEW**: Analyze artist and album popularity with interactive charts and tables
 
 ## Screenshots
 
@@ -50,6 +52,9 @@ With the GUI, you can:
 
 ### Visual Stats with Time Series Graphs
 ![Visual Stats](Visual.png)
+
+### Popularity Stats with Artist and Album Rankings
+![Popularity Stats](Popularity.png)
 
 ## Database Compatibility
 
