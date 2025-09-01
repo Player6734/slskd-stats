@@ -643,12 +643,12 @@ class MainWindow(QMainWindow):
         popularitySplitter = QSplitter(Qt.Horizontal)
         
         # Create artists section
-        artistsGroup = QGroupBox("Top Artists by Uploads")
+        artistsGroup = QGroupBox("Top Artists by Downloads")
         artistsLayout = QVBoxLayout()
         
         self.artistsTable = QTableWidget()
         self.artistsTable.setColumnCount(3)
-        self.artistsTable.setHorizontalHeaderLabels(["Artist", "Uploads", "Total Data"])
+        self.artistsTable.setHorizontalHeaderLabels(["Artist", "Downloads", "Total Data"])
         self.artistsTable.horizontalHeader().setStretchLastSection(True)
         self.artistsTable.setAlternatingRowColors(True)
         self.artistsTable.setSortingEnabled(True)
@@ -664,12 +664,12 @@ class MainWindow(QMainWindow):
         popularitySplitter.addWidget(artistsGroup)
         
         # Create albums section
-        albumsGroup = QGroupBox("Top Albums by Uploads")
+        albumsGroup = QGroupBox("Top Albums by Downloads")
         albumsLayout = QVBoxLayout()
         
         self.albumsTable = QTableWidget()
         self.albumsTable.setColumnCount(4)
-        self.albumsTable.setHorizontalHeaderLabels(["Artist", "Album", "Uploads", "Total Data"])
+        self.albumsTable.setHorizontalHeaderLabels(["Artist", "Album", "Downloads", "Total Data"])
         self.albumsTable.horizontalHeader().setStretchLastSection(True)
         self.albumsTable.setAlternatingRowColors(True)
         self.albumsTable.setSortingEnabled(True)
@@ -1011,7 +1011,7 @@ class MainWindow(QMainWindow):
         
         # Check if we have data and good format compatibility
         if not artist_stats and not album_stats:
-            self.showPopularityError("No successful upload transfers found.", format_info)
+            self.showPopularityError("No successful download transfers found.", format_info)
             return
         elif format_info['match_percentage'] < 50:
             self.showPopularityWarning(format_info)
@@ -1060,8 +1060,8 @@ class MainWindow(QMainWindow):
         bars = ax.barh(range(len(truncated_artists)), counts)
         ax.set_yticks(range(len(truncated_artists)))
         ax.set_yticklabels(truncated_artists, fontsize=8)
-        ax.set_xlabel('Uploads')
-        ax.set_title(f'Top {len(artists)} Artists by Uploads')
+        ax.set_xlabel('Downloads')
+        ax.set_title(f'Top {len(artists)} Artists by Downloads')
         
         # Add value labels on bars
         for i, (bar, count) in enumerate(zip(bars, counts)):
@@ -1118,8 +1118,8 @@ class MainWindow(QMainWindow):
         bars = ax.barh(range(len(truncated_labels)), counts)
         ax.set_yticks(range(len(truncated_labels)))
         ax.set_yticklabels(truncated_labels, fontsize=7)
-        ax.set_xlabel('Uploads')
-        ax.set_title(f'Top {len(album_labels)} Albums by Uploads')
+        ax.set_xlabel('Downloads')
+        ax.set_title(f'Top {len(album_labels)} Albums by Downloads')
         
         # Add value labels on bars
         for i, (bar, count) in enumerate(zip(bars, counts)):
@@ -1151,7 +1151,7 @@ class MainWindow(QMainWindow):
         for i, bar in enumerate(bars):
             if bar.contains(event)[0]:
                 # Show tooltip with full artist name and count
-                tooltip_text = f"{artists[i]}\n{counts[i]} uploads"
+                tooltip_text = f"{artists[i]}\n{counts[i]} downloads"
                 self.artistsCanvas.setToolTip(tooltip_text)
                 return
         
@@ -1167,7 +1167,7 @@ class MainWindow(QMainWindow):
         for i, bar in enumerate(bars):
             if bar.contains(event)[0]:
                 # Show tooltip with full album name and count
-                tooltip_text = f"{album_labels[i]}\n{counts[i]} uploads"
+                tooltip_text = f"{album_labels[i]}\n{counts[i]} downloads"
                 self.albumsCanvas.setToolTip(tooltip_text)
                 return
         
@@ -1202,25 +1202,29 @@ class MainWindow(QMainWindow):
 {message}
 
 How it works:
-• Analyzes successful upload transfers only
-• Extracts artist and album from file paths
-• Expected format: /path/Music/Artist/Album/Track.ext
+• Analyzes successful download transfers (what users want)
+• Smart left-to-right path parsing
+• Detects media folders (/music/, \\Artists\\, etc.)
+• Removes artist name prefixes from album titles
 
 Library Analysis:
 • Total files analyzed: {format_info['total_files']}
 • Compatible files: {format_info['matching_files']} ({format_info['match_percentage']:.1f}%)
 
-Example paths from your library:"""
+Parsing Examples:"""
         
-        if format_info['sample_paths']:
-            explanation_text += "\n\n" + "\n".join(f"• {path}" for path in format_info['sample_paths'][:5])
+        if format_info.get('format_examples'):
+            explanation_text += "\n\n" + "\n".join(
+                f"• {ex['artist']} → {ex['album']}" 
+                for ex in format_info['format_examples'][:5]
+            )
         
         if format_info['match_percentage'] < 50:
             explanation_text += f"""
 
 ⚠️  Low compatibility detected ({format_info['match_percentage']:.1f}%)
-Your music library structure may not match the expected format.
-Consider organizing music files as: /Music/Artist/Album/Track.ext"""
+The smart parser couldn't extract artist/album info from most files.
+Check if your files are in media folders like /music/ or /audiobooks/"""
             
         ax.text(0.05, 0.95, explanation_text, transform=ax.transAxes, 
                 fontsize=9, verticalalignment='top', fontfamily='monospace',
@@ -1229,22 +1233,31 @@ Consider organizing music files as: /Music/Artist/Album/Track.ext"""
         canvas.draw()
 
 def analyze_library_format(db_paths):
-    """Analyze the library format to determine if it matches expected structure"""
+    """Analyze the library format using smart left-to-right parsing"""
     total_files = 0
     matching_files = 0
     sample_paths = []
+    format_examples = []
     
     for db_path in db_paths:
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
+            # Detect database format
+            db_format = check_database_format(db_path)
+            
+            if db_format == 'new':
+                success_condition = "StateDescription='Completed, Succeeded'"
+            else:
+                success_condition = "State LIKE 'Completed, Succeeded'"
+            
             # Get a sample of successful upload filenames
-            cursor.execute("""
+            cursor.execute(f"""
                 SELECT Filename 
                 FROM Transfers 
-                WHERE State = 48 AND Direction = 'Upload' AND Filename IS NOT NULL
-                LIMIT 100
+                WHERE {success_condition} AND Direction = 'Download' AND Filename IS NOT NULL
+                LIMIT 200
             """)
             
             rows = cursor.fetchall()
@@ -1252,17 +1265,17 @@ def analyze_library_format(db_paths):
                 total_files += 1
                 sample_paths.append(filename)
                 
-                # Check if it matches expected format: /path/Music/{Artist}/{Album}/{Track}
-                if filename and '/Music/' in filename:
-                    try:
-                        parts = filename.split('/Music/')
-                        if len(parts) > 1:
-                            music_path = parts[1]
-                            path_parts = music_path.split('/')
-                            if len(path_parts) >= 2 and path_parts[0] and path_parts[1]:
-                                matching_files += 1
-                    except:
-                        continue
+                # Use smart parsing to extract artist/album
+                artist, album = parse_media_path(filename)
+                if artist and album:
+                    matching_files += 1
+                    # Keep some examples for display
+                    if len(format_examples) < 10:
+                        format_examples.append({
+                            'path': filename,
+                            'artist': artist,
+                            'album': album
+                        })
             
             conn.close()
             
@@ -1274,48 +1287,121 @@ def analyze_library_format(db_paths):
         'total_files': total_files,
         'matching_files': matching_files,
         'match_percentage': match_percentage,
-        'sample_paths': sample_paths[:10]  # Keep first 10 as examples
+        'sample_paths': sample_paths[:10],
+        'format_examples': format_examples
     }
 
+def parse_media_path(filepath):
+    """Smart left-to-right analysis of media file paths to extract artist and album"""
+    if not filepath:
+        return None, None
+    
+    # Normalize path separators (handle both single and double backslashes)
+    normalized_path = filepath.replace('\\\\', '/').replace('\\', '/')
+    lower_path = normalized_path.lower()
+    
+    # Find potential media indicators (case insensitive)
+    media_indicators = [
+        '/music/', '/audiobooks/', '/audio/', '/media/',
+        '/artists/', '/musica/', '/jazz/', '/rock/', '/electronic/',
+        'music/', 'artists/', 'musica/', 'jazz/', 'albums/'
+    ]
+    
+    path_parts = []
+    
+    # Try to find a media root
+    media_start_idx = -1
+    for indicator in media_indicators:
+        idx = lower_path.find(indicator)
+        if idx >= 0:
+            media_start_idx = idx + len(indicator)
+            break
+    
+    if media_start_idx >= 0:
+        # Extract from media root
+        media_path = normalized_path[media_start_idx:]
+        path_parts = [part for part in media_path.split('/') if part]
+    else:
+        # No clear media indicator - use heuristic approach
+        # Look for Artist/Album pattern in the path structure
+        all_parts = [part for part in normalized_path.split('/') if part]
+        
+        # Filter out common system/user prefixes
+        filtered_parts = []
+        skip_patterns = ['@@', '!', '#', 'my files', 'downloads', 'shared', 'soulseek', 'main']
+        
+        for part in all_parts:
+            part_lower = part.lower()
+            should_skip = False
+            for pattern in skip_patterns:
+                if part_lower.startswith(pattern):
+                    should_skip = True
+                    break
+            # Also skip parts that look like disk/volume identifiers
+            if len(part) <= 2 or part.isdigit() or (len(part) < 8 and any(c in part for c in '-_0123456789')):
+                should_skip = True
+            if not should_skip:
+                filtered_parts.append(part)
+        
+        # Take meaningful parts (likely Artist/Album/File or Genre/Artist/Album/File)
+        if len(filtered_parts) >= 3:
+            # Assume last 3 are Genre/Artist/Album or Artist/Album/File
+            # If last part looks like a file, take the two before it
+            if '.' in filtered_parts[-1]:
+                path_parts = filtered_parts[-3:-1]  # Artist and Album
+            else:
+                path_parts = filtered_parts[-2:]    # Artist and Album
+        elif len(filtered_parts) >= 2:
+            path_parts = filtered_parts[-2:]        # Assume Artist/Album
+    
+    # Need at least 2 parts: Artist/Album
+    if len(path_parts) < 2:
+        return None, None
+    
+    artist = path_parts[0]
+    raw_album = path_parts[1]
+    
+    # Smart album cleaning
+    cleaned_album = clean_album_name(artist, raw_album)
+    
+    return artist, cleaned_album
+
 def clean_album_name(artist, album):
-    """Smart cleaning of album names to remove redundant artist information"""
+    """Enhanced album name cleaning with common prefix removal"""
     if not artist or not album:
         return album
     
     artist_lower = artist.lower().strip()
     album_lower = album.lower().strip()
     
-    # Common patterns to clean
-    patterns_to_try = [
-        # Pattern: "Artist - Album Title"
-        f"{artist_lower} - ",
-        f"{artist_lower} – ",  # em dash
-        f"{artist_lower} — ",  # em dash variant
-        
-        # Pattern: "Artist: Album Title"
-        f"{artist_lower}: ",
-        f"{artist_lower} : ",
-        
-        # Pattern: "Artist_ Album Title" or similar separators
-        f"{artist_lower}_ ",
-        f"{artist_lower} _ ",
-    ]
+    # Enhanced patterns to clean (more comprehensive)
+    separators = [' - ', ' – ', ' — ', ': ', ' : ', '_ ', ' _ ', ' | ', ' / ']
     
     cleaned_album = album
-    for pattern in patterns_to_try:
+    for sep in separators:
+        pattern = f"{artist_lower}{sep}"
         if album_lower.startswith(pattern):
             cleaned_album = album[len(pattern):]
             break
     
-    # Additional cleaning: remove extra whitespace and dashes
-    cleaned_album = cleaned_album.strip(' -–—_')
+    # Additional cleanup patterns
+    if cleaned_album == album:  # No separator match, try other patterns
+        # Pattern: "ArtistName AlbumTitle" (space separated)
+        if album_lower.startswith(artist_lower + ' ') and len(album) > len(artist) + 1:
+            potential_clean = album[len(artist) + 1:]
+            # Only use if the remaining part looks like an album title
+            if len(potential_clean) > 3 and not potential_clean[0].islower():
+                cleaned_album = potential_clean
     
-    # If cleaning resulted in empty string, return original
-    if not cleaned_album:
+    # Final cleaning: remove extra whitespace and punctuation
+    cleaned_album = cleaned_album.strip(' -–—_:|/')
+    
+    # Validation: don't return empty or too-short results
+    if not cleaned_album or len(cleaned_album) < 2:
         return album
-        
-    # If cleaning removed too much (less than 3 chars), return original
-    if len(cleaned_album) < 3:
+    
+    # Don't clean if it removes more than 70% of the original
+    if len(cleaned_album) < len(album) * 0.3:
         return album
     
     return cleaned_album
@@ -1325,19 +1411,27 @@ def get_popularity_stats(db_paths, days=None):
     artist_stats = defaultdict(lambda: {'count': 0, 'bytes': 0})
     album_stats = defaultdict(lambda: {'count': 0, 'bytes': 0})
     
-    # Create WHERE clause for time filtering
-    where_clause = "WHERE State = 48 AND Direction = 'Upload'"  # Only successful uploads
-    params = []
-    
-    if days is not None:
-        where_clause += " AND RequestedAt >= ?"
-        cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
-        params.append(cutoff_date)
-    
     for db_path in db_paths:
         try:
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
+            
+            # Detect database format
+            db_format = check_database_format(db_path)
+            
+            if db_format == 'new':
+                success_condition = "StateDescription='Completed, Succeeded'"
+            else:
+                success_condition = "State LIKE 'Completed, Succeeded'"
+            
+            # Create WHERE clause for time filtering
+            where_clause = f"WHERE {success_condition} AND Direction = 'Download'"  # Track what users download
+            params = []
+    
+            if days is not None:
+                where_clause += " AND RequestedAt >= ?"
+                cutoff_date = (datetime.datetime.now() - datetime.timedelta(days=days)).isoformat()
+                params.append(cutoff_date)
             
             query = f"""
                 SELECT Filename, Size 
@@ -1349,32 +1443,17 @@ def get_popularity_stats(db_paths, days=None):
             rows = cursor.fetchall()
             
             for filename, size in rows:
-                # Parse filename to extract artist and album
-                # Expected format: /data/Music/{Artist}/{Album}/{Track}
-                if filename and '/Music/' in filename:
-                    try:
-                        parts = filename.split('/Music/')
-                        if len(parts) > 1:
-                            music_path = parts[1]
-                            path_parts = music_path.split('/')
-                            if len(path_parts) >= 2:
-                                artist = path_parts[0]
-                                raw_album = path_parts[1]
-                                
-                                # Clean album name to remove redundant artist info
-                                cleaned_album = clean_album_name(artist, raw_album)
-                                
-                                # Update artist stats
-                                artist_stats[artist]['count'] += 1
-                                artist_stats[artist]['bytes'] += size
-                                
-                                # Update album stats using cleaned album name
-                                album_key = (artist, cleaned_album)
-                                album_stats[album_key]['count'] += 1
-                                album_stats[album_key]['bytes'] += size
-                    except:
-                        # Skip files that don't match expected format
-                        continue
+                # Use smart left-to-right parsing to extract artist and album
+                artist, album = parse_media_path(filename)
+                if artist and album:
+                    # Update artist stats
+                    artist_stats[artist]['count'] += 1
+                    artist_stats[artist]['bytes'] += size
+                    
+                    # Update album stats
+                    album_key = (artist, album)
+                    album_stats[album_key]['count'] += 1
+                    album_stats[album_key]['bytes'] += size
             
             conn.close()
             
