@@ -12,7 +12,7 @@ A GUI tool to analyze upload and download statistics from your slskd transfers d
 - Lists top users by data transferred
 - Shows statistics by file type
 - Filter statistics by time period (All time, Last month, Last year)
-- **NEW**: Artist and album popularity statistics based on user download demand
+- Artist and album popularity statistics based on download frequency of your uploads
 - Smart path parsing with enhanced library structure detection  
 - Intelligent album name cleaning (removes redundant artist names from folder names)
 - User-friendly graphical interface with summary and detailed tables
@@ -43,8 +43,8 @@ With the GUI, you can:
 - Set the number of top entries to display
 - View upload and download statistics side-by-side
 - See summary statistics and detailed tables for users and file types
-- **NEW**: Visual time series graphs showing transfer trends over time
-- **NEW**: Analyze artist and album popularity based on download demand with interactive charts and tables
+- Visual time series graphs showing transfer trends over time
+- Analyze artist and album popularity based on how often others download your files with interactive charts and tables
 
 ## Screenshots
 
@@ -62,6 +62,7 @@ With the GUI, you can:
 This tool automatically detects and works with both:
 - **Old format**: Text-based `State` column
 - **New format**: Integer `State` + `StateDescription` columns
+
 
 ## About
 

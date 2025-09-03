@@ -1011,7 +1011,7 @@ class MainWindow(QMainWindow):
         
         # Check if we have data and good format compatibility
         if not artist_stats and not album_stats:
-            self.showPopularityError("No successful download transfers found.", format_info)
+            self.showPopularityError("No successful upload transfers found.", format_info)
             return
         elif format_info['match_percentage'] < 50:
             self.showPopularityWarning(format_info)
@@ -1202,7 +1202,7 @@ class MainWindow(QMainWindow):
 {message}
 
 How it works:
-• Analyzes successful download transfers (what users want)
+• Analyzes successful upload transfers (what others downloaded from you)
 • Smart left-to-right path parsing
 • Detects media folders (/music/, \\Artists\\, etc.)
 • Removes artist name prefixes from album titles
@@ -1256,7 +1256,7 @@ def analyze_library_format(db_paths):
             cursor.execute(f"""
                 SELECT Filename 
                 FROM Transfers 
-                WHERE {success_condition} AND Direction = 'Download' AND Filename IS NOT NULL
+                WHERE {success_condition} AND Direction = 'Upload' AND Filename IS NOT NULL
                 LIMIT 200
             """)
             
@@ -1425,7 +1425,7 @@ def get_popularity_stats(db_paths, days=None):
                 success_condition = "State LIKE 'Completed, Succeeded'"
             
             # Create WHERE clause for time filtering
-            where_clause = f"WHERE {success_condition} AND Direction = 'Download'"  # Track what users download
+            where_clause = f"WHERE {success_condition} AND Direction = 'Upload'"  # Track what users upload/share
             params = []
     
             if days is not None:
